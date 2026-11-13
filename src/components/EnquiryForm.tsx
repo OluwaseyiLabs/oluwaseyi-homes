@@ -55,6 +55,8 @@ export function EnquiryForm({ facilities }: { facilities: string[] }) {
   const [trap, setTrap] = useState("");
   // The CAPTCHA token, which works once. Empty until Cloudflare has checked the visitor.
   const [captcha, setCaptcha] = useState("");
+  // True when the check could not run at all (for example a privacy tool blocked it), so we can say so.
+  const [captchaBroken, setCaptchaBroken] = useState(false);
   const captchaBox = useRef<TurnstileHandle>(null);
   useEffect(() => {
     startedAt.current = Date.now();
@@ -122,7 +124,11 @@ export function EnquiryForm({ facilities }: { facilities: string[] }) {
   /** Step 1: send the enquiry. A code is emailed to the customer. */
   function requestCode() {
     if (TURNSTILE_SITE_KEY && !captcha) {
-      setMessage("One moment, we are checking that you are not a robot. Please try again in a second or two.");
+      setMessage(
+        captchaBroken
+          ? "The security check could not start. Please turn off any ad blocker or privacy shield for this site, reload the page and try again, or use another browser."
+          : "One moment, we are checking that you are not a robot. Please try again in a second or two.",
+      );
       setStatus(awaitingCode ? "code" : "failed");
       return;
     }
@@ -208,7 +214,7 @@ export function EnquiryForm({ facilities }: { facilities: string[] }) {
             {message}
           </p>
         )}
-        <Turnstile ref={captchaBox} action="enquiry" onToken={setCaptcha} />
+        <Turnstile ref={captchaBox} action="enquiry" onToken={setCaptcha} onProblem={setCaptchaBroken} />
         <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
           <button
             type="submit"
@@ -406,7 +412,7 @@ export function EnquiryForm({ facilities }: { facilities: string[] }) {
       )}
 
       <div className="sm:col-span-2">
-        <Turnstile ref={captchaBox} action="enquiry" onToken={setCaptcha} />
+        <Turnstile ref={captchaBox} action="enquiry" onToken={setCaptcha} onProblem={setCaptchaBroken} />
         <button
           type="submit"
           disabled={status === "sending"}

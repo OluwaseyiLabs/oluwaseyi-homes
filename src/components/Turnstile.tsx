@@ -38,14 +38,17 @@ function loadScript(): Promise<TurnstileApi> {
 /**
  * Cloudflare Turnstile. Most visitors see nothing at all: the check runs in the background and a token arrives in
  * `onToken`. Only if Cloudflare is unsure does it show a small challenge. `onToken("")` means the token was used up,
- * expired or failed, so the form must wait for a new one.
+ * expired or failed, so the form must wait for a new one. `onProblem(true)` means the check could not run at all
+ * (for example an ad blocker stopped it), so the visitor should be told rather than left waiting.
  */
-export function Turnstile({ action, onToken, ref }: { action: string; onToken: (token: string) => void; ref?: Ref<TurnstileHandle> }) {
+export function Turnstile({ action, onToken, onProblem, ref }: { action: string; onToken: (token: string) => void; onProblem?: (broken: boolean) => void; ref?: Ref<TurnstileHandle> }) {
   const box = useRef<HTMLDivElement>(null);
   const widget = useRef<string | null>(null);
   const api = useRef<TurnstileApi | null>(null);
   const callback = useRef(onToken);
   callback.current = onToken;
+  const problem = useRef(onProblem);
+  problem.current = onProblem;
 
   useImperativeHandle(ref, () => ({
     reset: () => {
@@ -67,12 +70,23 @@ export function Turnstile({ action, onToken, ref }: { action: string; onToken: (
           theme: document.documentElement.dataset.theme === "dark" ? "dark" : "light",
           // Invisible unless Cloudflare needs the visitor to do something.
           appearance: "interaction-only",
-          callback: (token: string) => callback.current(token),
+          callback: (token: string) => {
+            problem.current?.(false);
+            callback.current(token);
+          },
           "expired-callback": () => callback.current(""),
-          "error-callback": () => callback.current(""),
+          // The check itself failed (blocked by a privacy tool, no connection...): tell the form so it can say so.
+          "error-callback": () => {
+            callback.current("");
+            problem.current?.(true);
+            return true;
+          },
         });
       })
-      .catch(() => callback.current(""));
+      .catch(() => {
+        callback.current("");
+        problem.current?.(true);
+      });
     return () => {
       cancelled = true;
       if (api.current && widget.current) api.current.remove(widget.current);
