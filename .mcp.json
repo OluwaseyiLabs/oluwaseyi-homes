@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "n8n-mcp": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["scripts/mcp-n8n.sh"]
+    },
+    "github": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["scripts/mcp-github.sh"]
+    }
+  }
+}

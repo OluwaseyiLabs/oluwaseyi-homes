@@ -1,0 +1,1498 @@
+{
+  "name": "Oluwaseyi Homes & Properties",
+  "nodes": [
+    {
+      "id": "a1d3f6a2-4b7e-4c1a-9d52-6f0e3b8a1c01",
+      "name": "Lead webhook",
+      "notes": "POST JSON from the Next.js API route. Select a Header Auth credential here (the secret stays server-side in the app).",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "oluwaseyi-homes-lead",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "b2e4a7b3-5c8f-4d2b-8e63-7a1f4c9b2d02",
+      "name": "Validate and normalize",
+      "notes": "Why Code: IF/Set considered. Per-field error messages for the caller plus name/text normalisation need a loop over the schema. Config (team email, sheet id, website, WhatsApp) lives in CONFIG at the top.",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const CONFIG = { teamEmail: 'team@your-domain.example', website: 'https://your-domain.example', whatsapp: '234XXXXXXXXXX', sheetId: 'YOUR_GOOGLE_SHEET_ID' };\nconst SHEET_GIDS = { Rent: '0', Buy: '1705566378', Invest: '1194300972' };\nconst PROPERTY_TYPES = ['Apartment', 'Duplex', 'Semi-detached', 'Land', 'Office', 'Shop', 'Others'];\nconst body = $json.body && typeof $json.body === 'object' ? $json.body : {};\nconst str = key => String(body[key] ?? '').trim();\nconst email = str('email').toLowerCase();\nconst emailOk = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email);\nconst fail = error => ({ json: { valid: false, error } });\n// The website sends its own address, so links in emails open the site the visitor was on.\nconst siteUrl = /^https?:\\/\\/[^\\s]+$/.test(str('siteUrl')) ? str('siteUrl').replace(/\\/$/, '') : '';\n\n// Step 2: the customer sends back the 6-digit code.\nif (str('action') === 'verify') {\n  if (!emailOk || !/^\\d{6}$/.test(str('code'))) return fail('Enter the 6-digit code from the email.');\n  return { json: { valid: true, step: 'verify', email, code: str('code'), config: { ...CONFIG, website: siteUrl || CONFIG.website, sheetGids: SHEET_GIDS } } };\n}\n\n// Website server: send one branded email (owner acknowledgement link, invoice, receipt, contact release, team notice).\nconst esc = v => String(v ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nif (str('action') === 'send-email') {\n  const list = k => (Array.isArray(body[k]) ? body[k] : []);\n  // \"team\" means the company's own inbox.\n  const to = str('to') === 'team' ? CONFIG.teamEmail : str('to');\n  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(to) || !str('subject') || !str('heading')) return fail('The email is missing its address, subject or heading.');\n  const paragraphs = list('paragraphs').map(p => `<p style='margin:0 0 16px;font-size:16px;line-height:26px;'>${esc(p)}</p>`).join('');\n  const rows = list('rows').filter(r => Array.isArray(r) && r[1]).map(([label, value]) => `<tr><td style='padding:12px 16px;border-bottom:1px solid #DCE6DF;'><strong style='display:block;color:#14532D;font-size:12px;line-height:18px;'>${esc(label)}</strong><span style='font-size:16px;line-height:24px;'>${esc(value)}</span></td></tr>`).join('');\n  const btns = (Array.isArray(body.buttons) ? body.buttons : body.button ? [body.button] : []).filter(x => x && typeof x === 'object' && /^https?:\\/\\//.test(String(x.url || ''))).slice(0, 3);\n  const html = `<div style='font-family:Arial,Helvetica,sans-serif;color:#24352E;max-width:560px;margin:0 auto;padding:24px;'><p style='margin:0 0 6px;color:#14532D;font-size:13px;font-weight:bold;letter-spacing:1px;'>OLUWASEYI HOMES &amp; PROPERTIES</p><h1 style='margin:0 0 16px;font-size:22px;line-height:30px;'>${esc(str('heading'))}</h1>${paragraphs}${rows ? `<table role='presentation' width='100%' cellspacing='0' cellpadding='0' style='background:#F4F8F5;border-left:4px solid #C5A047;margin:0 0 20px;'>${rows}</table>` : ''}${btns.map(x => `<p style='margin:0 0 12px;'><a href='${esc(x.url)}' style='display:inline-block;padding:14px 22px;background:#14532D;border-radius:6px;color:#FFFFFF;font-size:15px;font-weight:bold;text-decoration:none;'>${esc(x.label || 'Open')}</a></p>`).join('')}${btns.length ? `<p style='margin:8px 0 16px;font-size:13px;line-height:20px;color:#55615A;word-break:break-all;'>If a button does not work, copy this link: ${esc(btns[0].url)}</p>` : ''}<p style='margin:0;font-size:14px;line-height:22px;color:#55615A;'>${esc(str('footnote') || 'Questions? Reply to this email or message us on WhatsApp.')} WhatsApp: <a href='https://wa.me/${CONFIG.whatsapp}' style='color:#163E73;'>+${CONFIG.whatsapp}</a>.</p></div>`;\n  return { json: { valid: true, step: 'email', email: to.toLowerCase(), subject: str('subject').slice(0, 200), html } };\n}\n\n// Dashboard: send a follow-up for one lead now.\nif (str('action') === 'follow-up') {\n  if (!/^[0-9a-f-]{36}$/.test(str('leadId'))) return fail('That lead could not be found.');\n  return { json: { valid: true, step: 'follow-up', leadId: str('leadId'), actor: str('actor').slice(0, 80) || 'System', siteUrl: /^https?:\\/\\//.test(str('siteUrl')) ? str('siteUrl').replace(/\\/$/, '') : '' } };\n}\n\n// Step 1: the enquiry itself.\nconst pick = (list, value) => list.find(item => item.toLowerCase() === value.toLowerCase());\nconst enquiryType = pick(Object.keys(SHEET_GIDS), str('enquiryType'));\nconst propertyType = pick(PROPERTY_TYPES, str('propertyType'));\nconst errors = [];\nif (!str('firstName')) errors.push('firstName is required');\nif (!str('lastName')) errors.push('lastName is required');\nif (!emailOk) errors.push('email must be a valid email address');\nif (!/^\\+?[0-9\\s()-]{7,20}$/.test(str('phone'))) errors.push('phone must be 7 to 20 digits');\nif (!enquiryType) errors.push('enquiryType must be one of: ' + Object.keys(SHEET_GIDS).join(', '));\nif (!propertyType) errors.push('propertyType must be one of: ' + PROPERTY_TYPES.join(', '));\nif (str('moveInDate') && !/^\\d{4}-\\d{2}-\\d{2}$/.test(str('moveInDate'))) errors.push('moveInDate must be a date (YYYY-MM-DD)');\nif (str('inspectionDate') && !/^\\d{4}-\\d{2}-\\d{2}$/.test(str('inspectionDate'))) errors.push('inspectionDate must be a date (YYYY-MM-DD)');\nif (str('inspectionSlot') && !['Morning', 'Afternoon', 'Evening'].includes(str('inspectionSlot'))) errors.push('inspectionSlot must be Morning, Afternoon or Evening');\nif (str('acknowledged') !== 'yes') errors.push('the customer must acknowledge the introduction');\nif (errors.length) return fail(errors.join('; '));\nconst title = text => text.toLowerCase().replace(/(^|[\\s'’-])(\\p{L})/gu, (_, sep, letter) => sep + letter.toUpperCase());\nconst sentence = text => text.replace(/(^|[.!?]\\s+|\\n+)([^\\p{L}\\p{N}]*)(\\p{L})/gu, (_, boundary, prefix, letter) => boundary + prefix + letter.toUpperCase());\nreturn { json: { valid: true, step: 'request', email, config: { ...CONFIG, website: siteUrl || CONFIG.website, sheetGids: SHEET_GIDS }, payload: {\n  fullName: title((str('firstName') + ' ' + str('lastName')).replace(/\\s+/g, ' ')),\n  phone: str('phone'),\n  enquiryType,\n  propertyType,\n  location: str('location'),\n  budget: str('budget'),\n  moveInDate: str('moveInDate'),\n  inspectionDate: str('inspectionDate'),\n  inspectionSlot: str('inspectionSlot'),\n  facilities: str('facilities').split(',').map(f => f.trim()).filter(Boolean).slice(0, 20),\n  assistance: enquiryType === 'Rent' && str('assistance') === 'yes',\n  note: sentence(str('specialRequirement')).slice(0, 1500),\n  source: str('source').slice(0, 80) || 'Direct',\n  listingId: str('listingId').slice(0, 40),\n  acknowledgedAt: $now.toUTC().toISO()\n} } };"
+      }
+    },
+    {
+      "id": "c3f5b8c4-6d90-4e3c-9f74-8b2a5d0c3e03",
+      "name": "Valid input?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d4a6c9d5-7ea1-4f4d-8a85-9c3b6e1d4f04",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e5b7dae6-8fb2-4a5e-9b96-ad4c7f2e5a05",
+      "name": "Respond 400 invalid input",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        720,
+        320
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, data: null, error: $json.error } }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    },
+    {
+      "id": "f6c8ebf7-90c3-4b6f-8ca7-be5d8a3f6b06",
+      "name": "Save lead to sheet",
+      "notes": "One node for all four tabs: the tab is chosen by gid from the enquiry type.",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput",
+      "position": [
+        1680,
+        0
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.lead.sheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $json.lead.sheetGid }}",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.lead.timestamp }}",
+            "Name": "={{ $json.lead.fullName }}",
+            "Email Address": "={{ $json.lead.email }}",
+            "Phone Number": "={{ $json.lead.phone }}",
+            "what are you looking for": "={{ $json.lead.enquiryType }}",
+            "Property Type": "={{ $json.lead.propertyType }}",
+            "Location": "={{ $json.lead.location }}",
+            "Budget": "={{ $json.lead.budget }}",
+            "Special Requirement": "={{ $json.lead.specialRequirement }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Address",
+              "displayName": "Email Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "what are you looking for",
+              "displayName": "what are you looking for",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Property Type",
+              "displayName": "Property Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Special Requirement",
+              "displayName": "Special Requirement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a7d9fc08-a1d4-4c70-9db8-cf6e9b4a7c07",
+      "name": "Respond 200 success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1920,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, data: { reference: $('Prepare lead').first().json.lead.reference, trackToken: $('Prepare lead').first().json.lead.trackToken, message: 'Thank you. Your enquiry is registered. Once it is approved, we will email you the property owner\\'s contact details.' }, error: null } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "c9fbbe2a-c3f6-4e92-9fda-e18abd6c9e09",
+      "name": "Build emails",
+      "notes": "Why Code: Set/expression considered. Two HTML email templates with escaping and conditional rows replace 8 duplicated 5 KB expressions. Runs after the webhook response is sent.",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const lead = $('Prepare lead').first().json.lead;\nconst GREEN = '#14532D', NAVY = '#163E73', GOLD = '#C5A047';\nconst esc = v => String(v ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst rows = list => list.filter(([, v]) => v && String(v).trim() && v !== 'No Additional Comments').map(([label, v]) => `<tr><td style='padding:14px 18px;border-bottom:1px solid #DCE6DF;overflow-wrap:anywhere;word-break:break-word;'><strong style='display:block;margin-bottom:4px;color:${GREEN};font-size:12px;line-height:18px;'>${esc(label)}</strong><span style='font-size:15px;line-height:24px;'>${esc(v).replace(/\\r?\\n/g, '<br>')}</span></td></tr>`).join('');\nconst button = (href, label, bg) => `<tr><td bgcolor='${bg}' style='border-radius:6px;text-align:center;'><a href='${esc(href)}' target='_blank' style='display:inline-block;padding:14px 22px;border:1px solid ${bg};border-radius:6px;color:#FFFFFF;font-size:15px;line-height:22px;font-weight:bold;text-decoration:none;'>${esc(label)}</a></td></tr><tr><td height='12' style='font-size:1px;line-height:12px;'>&nbsp;</td></tr>`;\nconst layout = o => `<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>${o.heading}</title></head><body style='margin:0;padding:0;background-color:#F3F6F4;font-family:Arial,Helvetica,sans-serif;color:#24352E;'><div style='display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;overflow:hidden;opacity:0;'>${o.preheader}</div><table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0' style='background-color:#F3F6F4;'><tr><td align='center' style='padding:24px 12px;'><table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0' style='max-width:600px;background-color:#FFFFFF;border:1px solid #DCE6DF;'><tr><td style='padding:28px 24px;background-color:${GREEN};border-bottom:5px solid ${GOLD};'><p style='margin:0 0 8px;color:#FDE68A;font-size:12px;line-height:18px;font-weight:bold;letter-spacing:2px;'>OLUWASEYI</p><p style='margin:0;color:#FFFFFF;font-size:22px;line-height:30px;font-weight:bold;'>Homes &amp; Properties</p></td></tr><tr><td style='padding:30px 24px 18px;'><h1 style='margin:0 0 22px;color:${NAVY};font-size:26px;line-height:34px;'>${o.heading}</h1><p style='margin:0 0 14px;font-size:16px;line-height:26px;'>${o.greeting}</p><p style='margin:0;font-size:16px;line-height:26px;'>${o.intro}</p></td></tr>${o.rows ? `<tr><td style='padding:0 24px 24px;'><h2 style='margin:0 0 12px;color:${NAVY};font-size:18px;line-height:26px;'>${o.detailsHeading}</h2><table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0' style='background-color:#F4F8F5;border-left:4px solid ${GOLD};'>${o.rows}</table></td></tr>` : ''}<tr><td style='padding:0 24px 24px;'><p style='margin:0 0 20px;font-size:16px;line-height:26px;'>${o.action}</p><table role='presentation' cellspacing='0' cellpadding='0' border='0'>${o.buttons}</table><p style='margin:24px 0 0;font-size:15px;line-height:25px;'>Warm regards,<br><strong>Oluwaseyi Homes &amp; Properties</strong></p></td></tr><tr><td style='padding:18px 24px;background-color:#FFF8DB;border-top:1px solid #E6D6A4;'><p style='margin:0;color:#46534B;font-size:12px;line-height:20px;'>${o.footer}<br>WhatsApp: <a href='https://wa.me/${lead.whatsapp}' style='color:${NAVY};text-decoration:underline;'>+${lead.whatsapp}</a></p></td></tr></table></td></tr></table></body></html>`;\nconst wa = `https://wa.me/${lead.whatsapp}`;\nconst sheetUrl = `https://docs.google.com/spreadsheets/d/${lead.sheetId}/edit#gid=${lead.sheetGid}`;\nconst clientHtml = layout({ heading: 'Your enquiry is registered.', preheader: 'Thank you for getting in touch. We will email you the owner\\'s contact details once your enquiry is approved.', greeting: `Hello ${esc(lead.fullName.split(' ')[0])},`, intro: 'Thank you for contacting Oluwaseyi Homes &amp; Properties. Your enquiry is registered under the reference below. We review every enquiry. Once yours is approved, we will email you the property owner&#39;s WhatsApp number and email address so you can deal with them directly.', detailsHeading: 'Your enquiry details', rows: rows([['Reference', lead.reference], ['Property', lead.property], ['Phone number', lead.phone], ['Enquiry type', lead.enquiryType], ['Property type', lead.propertyType], ['Preferred location', lead.location], ['Budget', lead.budget], ['Inspection you asked for', lead.inspection], ['Your requirements', lead.clientNote]]), action: 'Would you like to add anything or correct a detail? Reply to this email or message us on WhatsApp.', buttons: button(lead.trackUrl, 'Track your enquiry', GREEN) + button(wa, 'Message us on WhatsApp', NAVY) + button(lead.website, 'Visit our website', NAVY), footer: 'You received this email because you submitted a property enquiry.' });\nconst teamHtml = layout({ heading: 'New property lead received.', preheader: 'A new property lead is ready for review and follow-up.', greeting: 'Hello Team,', intro: 'A new property enquiry has been received. The customer&#39;s email is verified. Open the dashboard to review the lead and approve it before the owner&#39;s contact is released.', detailsHeading: 'Lead details', rows: rows([['Reference', lead.reference], ['Full name', lead.fullName], ['Email address', lead.email], ['Phone number', lead.phone], ['Enquiry type', lead.enquiryType], ['Property type', lead.propertyType], ['Preferred location', lead.location], ['Budget', lead.budget], ['Special requirements', lead.specialRequirement], ['Received at (Lagos time)', lead.timestamp]]), action: 'Open the lead sheet to review the full client details.', buttons: button(sheetUrl, 'Open the lead sheet', GREEN) + button(lead.website, 'Visit our website', NAVY), footer: 'Internal lead notification for the Oluwaseyi Homes &amp; Properties team.' });\nreturn { json: { clientTo: lead.email, clientSubject: 'We’ve Received Your Property Enquiry - ' + lead.fullName, clientHtml, teamTo: lead.teamEmail, teamSubject: 'New Property Lead Received - ' + lead.enquiryType + ' - ' + lead.fullName, teamHtml } };"
+      }
+    },
+    {
+      "id": "daacdf3b-d4a7-4fa3-8aeb-f29cbe7daf0a",
+      "name": "Email client",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "position": [
+        2400,
+        -80
+      ],
+      "parameters": {
+        "sendTo": "={{ $json.clientTo }}",
+        "subject": "={{ $json.clientSubject }}",
+        "message": "={{ $json.clientHtml }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Oluwaseyi Homes & Properties"
+        }
+      }
+    },
+    {
+      "id": "ebbd0e4c-e5b8-4ab4-9bfc-0a3ddf8eb01b",
+      "name": "Email team",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "position": [
+        2400,
+        80
+      ],
+      "parameters": {
+        "sendTo": "={{ $json.teamTo }}",
+        "subject": "={{ $json.teamSubject }}",
+        "message": "={{ $json.teamHtml }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Oluwaseyi Homes & Properties Team"
+        }
+      }
+    },
+    {
+      "id": "023d06f3-6eaa-4f93-88d0-b0bffdef97f5",
+      "name": "Which step?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2564f531-a3ed-40c7-97e0-a5906f06efaa",
+              "leftValue": "={{ $json.step === 'request' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "cc337d11-555c-4a55-a206-622ae26d6c85",
+      "name": "Create email code",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        -240
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-PROJECT.supabase.co/rest/v1/rpc/request_email_code",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_email: $json.email, p_payload: $json.payload }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "6cfe5ea2-13c5-4958-9ed1-03728899858f",
+      "name": "Code created?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        -320
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "24876c03-f424-472d-99b4-7edd17dca58b",
+              "leftValue": "={{ $json.ok === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c0280174-a973-4509-94f7-87932122724d",
+      "name": "Email code",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        -400
+      ],
+      "parameters": {
+        "sendTo": "={{ $('Validate and normalize').first().json.email }}",
+        "subject": "Your Oluwaseyi Homes & Properties verification code",
+        "message": "={{ \"<div style='font-family:Arial,Helvetica,sans-serif;color:#24352E;max-width:520px;margin:0 auto;padding:24px;'><p style='margin:0 0 6px;color:#14532D;font-size:13px;font-weight:bold;letter-spacing:1px;'>OLUWASEYI HOMES &amp; PROPERTIES</p><h1 style='margin:0 0 16px;font-size:22px;line-height:30px;'>Your verification code</h1><p style='margin:0 0 16px;font-size:16px;line-height:26px;'>Enter this code on the website to finish sending your enquiry.</p><p style='margin:0 0 16px;padding:16px;background:#F4F8F5;border-left:4px solid #C5A047;font-size:32px;line-height:40px;font-weight:bold;letter-spacing:6px;'>\" + $json.code + \"</p><p style='margin:0;font-size:14px;line-height:22px;color:#55615A;'>The code works for \" + $json.minutes + \" minutes. If you did not ask for it, you can ignore this email.</p></div>\" }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Oluwaseyi Homes & Properties"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "08124f8f-152d-4d54-8445-d68de1d798f1",
+      "name": "Respond 200 code sent",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1680,
+        -480
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, data: { step: 'code', message: 'We sent a 6-digit code to your email. Enter it below to finish. The code works for 10 minutes.' }, error: null } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "af3ea04d-d94f-4a08-9be6-f5b943264cd4",
+      "name": "Respond 502 code not sent",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1680,
+        -320
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, data: null, error: 'We could not send the code to that email address. Check the address and try again.' } }}",
+        "options": {
+          "responseCode": 502
+        }
+      }
+    },
+    {
+      "id": "7bc63956-c742-455b-a7e8-602b756cb4c2",
+      "name": "Respond 429 too many codes",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1440,
+        -240
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, data: null, error: $json.reason } }}",
+        "options": {
+          "responseCode": 429
+        }
+      }
+    },
+    {
+      "id": "be3545db-c738-49d3-b865-2e8c35328bd4",
+      "name": "Register lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        160
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-PROJECT.supabase.co/rest/v1/rpc/register_lead",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_email: $json.email, p_code: $json.code }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "293da6e3-d2b6-4025-b7eb-fd542eed577a",
+      "name": "Lead registered?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        80
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e46bce1f-fb16-4ea7-b71a-d40da8482141",
+              "leftValue": "={{ $json.ok === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "29716d41-d644-4bfd-9afa-70d5477e774b",
+      "name": "Respond 400 code rejected",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1440,
+        240
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, data: null, error: $json.reason } }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    },
+    {
+      "id": "70aaaa54-d713-4d10-a152-a63714d39c1d",
+      "name": "Respond 500 try again",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1200,
+        400
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, data: null, error: 'We could not process your enquiry just now. Please try again shortly.' } }}",
+        "options": {
+          "responseCode": 500
+        }
+      }
+    },
+    {
+      "id": "b0a24345-43d0-4c3e-8f43-bb886fb90d61",
+      "name": "Prepare lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Why Code: shapes the registered lead into the one object the sheet row and both emails read, joining several optional fields into text.\nconst config = $('Validate and normalize').first().json.config;\nconst l = $json.lead;\nconst lagos = $now.setZone('Africa/Lagos');\nconst asked = [\n  l.note,\n  l.moveInDate && 'Intended move-in date: ' + l.moveInDate,\n  l.facilities && l.facilities.length && 'Essential facilities: ' + l.facilities.join(', '),\n  l.assistance && 'Tenant assistance service requested (fee to be agreed before any work starts)',\n  l.inspectionDate && 'Inspection requested for ' + l.inspectionDate + (l.inspectionSlot ? ', ' + l.inspectionSlot.toLowerCase() : '')\n].filter(Boolean);\nconst { sheetGids, ...rest } = config;\nreturn { json: { lead: {\n  fullName: l.fullName, email: l.email, phone: l.phone, enquiryType: l.enquiryType, propertyType: l.propertyType,\n  location: l.location, budget: l.budget,\n  clientNote: asked.join('\\n'),\n  specialRequirement: [...asked, 'Lead ID: ' + l.code, 'Property: ' + (l.property || 'none (general enquiry)'), 'Source: ' + l.source].join('\\n'),\n  property: l.property || '',\n  inspection: l.inspectionDate ? l.inspectionDate + (l.inspectionSlot ? ', ' + l.inspectionSlot.toLowerCase() : '') : '',\n  trackToken: l.trackToken,\n  trackUrl: config.website + '/track/' + l.trackToken,\n  timestamp: lagos.toFormat('dd/MM/yyyy HH:mm:ss'),\n  reference: l.code,\n  sheetGid: sheetGids[l.enquiryType],\n  ...rest\n} } };"
+      }
+    },
+    {
+      "id": "8e172de5-e404-4ca4-ae1a-acc0ddbb4f9b",
+      "name": "Listing webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        1000
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "oluwaseyi-homes-listing",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "6f31f606-8fdf-4efb-9081-f75bd9946240",
+      "name": "Check submission",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        1000
+      ],
+      "parameters": {
+        "jsCode": "// Why Code: checks a dozen required fields of different kinds in one place and returns one clear message.\nconst CONFIG = { teamEmail: 'team@your-domain.example', dashboard: 'https://your-domain.example/admin/submissions' };\nconst p = $json.body && typeof $json.body === 'object' ? $json.body : {};\nconst text = k => typeof p[k] === 'string' && p[k].trim() !== '';\nconst errors = [];\nif (!['Rent', 'Sell'].includes(p.purpose)) errors.push('purpose must be Rent or Sell');\nfor (const k of ['fullName', 'phone', 'propertyType', 'address', 'neighbourhood', 'relationship', 'paymentReference', 'agreementVersion', 'feeDue'])\n  if (!text(k)) errors.push(k + ' is required');\nif (!text('email') || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(p.email)) errors.push('email must be a valid email address');\nfor (const k of ['askingAmount', 'listingFee', 'feePct', 'protectionMonths'])\n  if (typeof p[k] !== 'number' || !(p[k] > 0)) errors.push(k + ' must be a number above zero');\nif (!Array.isArray(p.photos) || p.photos.length < 1 || p.photos.length > 8 || p.photos.some(x => typeof x !== 'string')) errors.push('photos must list 1 to 8 stored photos');\nif (errors.length) return { json: { valid: false, error: errors.join('; ') } };\nreturn { json: { valid: true, p, config: CONFIG } };"
+      }
+    },
+    {
+      "id": "5b2b98d9-7bee-4190-a6af-88450cc820fb",
+      "name": "Valid submission?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        1000
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "26de192d-151f-4ff1-bb93-cbdff4fcf060",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "13da21e2-5556-414b-b5b8-d9613e68e9ce",
+      "name": "Respond 400 invalid submission",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        720,
+        1200
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, data: null, error: $json.error } }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    },
+    {
+      "id": "a6022c76-aa09-4c29-ba51-713d054ac722",
+      "name": "Store submission",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        920
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-PROJECT.supabase.co/rest/v1/rpc/submit_listing",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p: $json.p }) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "93d34d59-8650-4459-b758-542edddac86c",
+      "name": "Respond 500 listing not saved",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        960,
+        1120
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, data: null, error: 'We could not save your property just now. Your payment is recorded. Please try again shortly.' } }}",
+        "options": {
+          "responseCode": 500
+        }
+      }
+    },
+    {
+      "id": "d504ca7b-1f21-4784-b39a-34e17b126133",
+      "name": "Stored?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        840
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "88c0a053-acb7-4f2a-9ff7-56ea995efd58",
+              "leftValue": "={{ $json.ok === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "9ed449d0-b4e8-422e-830f-fe07aae73369",
+      "name": "Respond 409 not stored",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1200,
+        960
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, data: null, error: $json.reason } }}",
+        "options": {
+          "responseCode": 409
+        }
+      }
+    },
+    {
+      "id": "1b3d9f57-6316-4558-b86b-780a6394cdff",
+      "name": "Respond 200 listing received",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1200,
+        760
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, data: { reference: $json.code, message: 'Thank you. We have received your property and your listing fee. We will review it and contact you.' }, error: null } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "61109119-a2ed-498b-b41e-78a293c01183",
+      "name": "Email team about listing",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        760
+      ],
+      "parameters": {
+        "sendTo": "={{ $('Check submission').first().json.config.teamEmail }}",
+        "subject": "={{ 'New property submission to ' + ($('Store submission').first().json.purpose === 'Rent' ? 'rent' : 'sell') + ' - ' + $('Store submission').first().json.code }}",
+        "message": "={{ \"<div style='font-family:Arial,Helvetica,sans-serif;color:#24352E;max-width:520px;margin:0 auto;padding:24px;'><p style='margin:0 0 6px;color:#14532D;font-size:13px;font-weight:bold;letter-spacing:1px;'>OLUWASEYI HOMES &amp; PROPERTIES</p><h1 style='margin:0 0 16px;font-size:22px;line-height:30px;'>New property submission</h1><p style='margin:0 0 16px;font-size:16px;line-height:26px;'>A new property to \" + ($('Store submission').first().json.purpose === 'Rent' ? 'rent' : 'sell') + \" has been submitted and the listing fee has been paid. Reference: <strong>\" + $('Store submission').first().json.code + \"</strong>.</p><p style='margin:0 0 20px;font-size:16px;line-height:26px;'>Check the full details on the dashboard.</p><p style='margin:0;'><a href='\" + $('Check submission').first().json.config.dashboard + \"' style='display:inline-block;padding:14px 22px;background:#14532D;border-radius:6px;color:#FFFFFF;font-size:15px;font-weight:bold;text-decoration:none;'>Open the dashboard</a></p></div>\" }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Oluwaseyi Homes & Properties"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "7d218e63-a8bf-48bf-bf2b-01556c9d2a62",
+      "name": "Send email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        -560
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5ec8ca00-18c6-4ab7-8ce2-17a878d7d0b8",
+              "leftValue": "={{ $json.step === 'email' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "1f2a4ae8-45ba-4aa3-81a7-c209b619515d",
+      "name": "Send email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        -640
+      ],
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Oluwaseyi Homes & Properties"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "85c07124-3c24-473c-a11f-b0317c555cce",
+      "name": "Respond 200 email sent",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1200,
+        -720
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, data: { message: 'The email was sent.' }, error: null } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "6ee41e71-968f-4096-8c24-9d138b69ba80",
+      "name": "Respond 502 email not sent",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1200,
+        -560
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, data: null, error: 'The email could not be sent.' } }}",
+        "options": {
+          "responseCode": 502
+        }
+      }
+    },
+    {
+      "id": "a25600cf-8233-4ac8-83e2-ad7e2eb40dad",
+      "name": "Follow-up now?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        -880
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ffb6cadf-31e1-45ce-a07e-386cbaa4daa9",
+              "leftValue": "={{ $json.step === 'follow-up' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "fed69cdb-4849-49b4-8c5b-aff3d5b72f76",
+      "name": "Create follow-up for lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        -960
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-PROJECT.supabase.co/rest/v1/rpc/create_follow_up",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_lead: $json.leadId }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "4f1cba41-d2fe-4c02-b649-f298adb55ed4",
+      "name": "Respond 200 follow-up sent",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1200,
+        -1040
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, data: { message: 'The follow-up was sent to the customer and the owner.' }, error: null } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "1c73d495-e513-43c9-8ebb-c3befcf66efd",
+      "name": "Respond 409 no follow-up",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1200,
+        -880
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, data: null, error: 'No follow-up was sent. Follow-ups only go out after contact has been released and while the lead is still open.' } }}",
+        "options": {
+          "responseCode": 409
+        }
+      }
+    },
+    {
+      "id": "550101f2-9ede-414f-9f20-f2ed2b6c1063",
+      "name": "Any follow-up?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        -1200
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d45c177b-5384-435a-88a1-0b035305848e",
+              "leftValue": "={{ !!$json.token }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "3860e60a-3aa8-4f76-bb5d-aba75d4bb789",
+      "name": "Daily follow-ups",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        -1440
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "78e46228-0e9e-4761-8f5f-8b4411a7ca0b",
+      "name": "Create follow-ups",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        -1440
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-PROJECT.supabase.co/rest/v1/rpc/create_follow_ups",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({}) }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "970a3181-ad4b-407b-a0da-38f7a5dd0dd8",
+      "name": "Build follow-up email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        -1280
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Why Code: writes the follow-up email for one person, with their own one-time link, for both the daily run and the dashboard button.\nconst WEBSITE = 'https://your-domain.example';\nif (!$json.token) return { json: { skip: true } };\nlet site = WEBSITE;\n// A follow-up started from the dashboard says which website address the link should use.\ntry { site = $('Validate and normalize').first().json.siteUrl || WEBSITE; } catch (e) {}\nconst esc = v => String(v ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst f = $json;\nconst deal = f.kind === 'Rent' ? 'rental' : 'sale';\nconst link = site + '/r/' + f.token;\nconst other = f.party === 'owner' ? 'the customer we introduced to you' : 'the owner';\nconst html = `<div style='font-family:Arial,Helvetica,sans-serif;color:#24352E;max-width:560px;margin:0 auto;padding:24px;'><p style='margin:0 0 6px;color:#14532D;font-size:13px;font-weight:bold;letter-spacing:1px;'>OLUWASEYI HOMES &amp; PROPERTIES</p><h1 style='margin:0 0 16px;font-size:22px;line-height:30px;'>How did it go?</h1><p style='margin:0 0 16px;font-size:16px;line-height:26px;'>Hello ${esc(f.party === 'owner' ? f.name : String(f.name).split(' ')[0])}, we put you in touch with ${other} about <strong>${esc(f.property)}</strong> (reference ${esc(f.leadCode)}).</p><p style='margin:0 0 20px;font-size:16px;line-height:26px;'>Please tell us two things: did the inspection take place, and has the ${deal} been completed? It takes less than a minute.</p><p style='margin:0 0 20px;'><a href='${link}' style='display:inline-block;padding:14px 22px;background:#14532D;border-radius:6px;color:#FFFFFF;font-size:15px;font-weight:bold;text-decoration:none;'>Answer two quick questions</a></p><p style='margin:0 0 16px;font-size:13px;line-height:20px;color:#55615A;word-break:break-all;'>If the button does not work, copy this link: ${link}</p><p style='margin:0;font-size:14px;line-height:22px;color:#55615A;'>The link works once, for 48 hours, and is only for you.</p></div>`;\nreturn { json: { to: f.email, subject: 'A quick question about ' + f.property, html } };"
+      }
+    },
+    {
+      "id": "36f7b1e4-51be-4be4-914c-822f80c6851e",
+      "name": "Email follow-up",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1680,
+        -1280
+      ],
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Oluwaseyi Homes & Properties"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "Lead webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate and normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate and normalize": {
+      "main": [
+        [
+          {
+            "node": "Valid input?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid input?": {
+      "main": [
+        [
+          {
+            "node": "Send email?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 400 invalid input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email?": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Follow-up now?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 email sent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 502 email not sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Follow-up now?": {
+      "main": [
+        [
+          {
+            "node": "Create follow-up for lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Which step?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create follow-up for lead": {
+      "main": [
+        [
+          {
+            "node": "Any follow-up?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 500 try again",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any follow-up?": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 follow-up sent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 409 no follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond 200 follow-up sent": {
+      "main": [
+        [
+          {
+            "node": "Build follow-up email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily follow-ups": {
+      "main": [
+        [
+          {
+            "node": "Create follow-ups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create follow-ups": {
+      "main": [
+        [
+          {
+            "node": "Build follow-up email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build follow-up email": {
+      "main": [
+        [
+          {
+            "node": "Email follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Which step?": {
+      "main": [
+        [
+          {
+            "node": "Create email code",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Register lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create email code": {
+      "main": [
+        [
+          {
+            "node": "Code created?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 500 try again",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code created?": {
+      "main": [
+        [
+          {
+            "node": "Email code",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 429 too many codes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email code": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 code sent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 502 code not sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Register lead": {
+      "main": [
+        [
+          {
+            "node": "Lead registered?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 500 try again",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead registered?": {
+      "main": [
+        [
+          {
+            "node": "Prepare lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 400 code rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare lead": {
+      "main": [
+        [
+          {
+            "node": "Save lead to sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save lead to sheet": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond 200 success": {
+      "main": [
+        [
+          {
+            "node": "Build emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build emails": {
+      "main": [
+        [
+          {
+            "node": "Email client",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listing webhook": {
+      "main": [
+        [
+          {
+            "node": "Check submission",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check submission": {
+      "main": [
+        [
+          {
+            "node": "Valid submission?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid submission?": {
+      "main": [
+        [
+          {
+            "node": "Store submission",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 400 invalid submission",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store submission": {
+      "main": [
+        [
+          {
+            "node": "Stored?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 500 listing not saved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stored?": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 listing received",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 409 not stored",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond 200 listing received": {
+      "main": [
+        [
+          {
+            "node": "Email team about listing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timezone": "Africa/Lagos"
+  }
+}

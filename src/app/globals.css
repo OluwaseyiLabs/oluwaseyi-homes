@@ -1,0 +1,317 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ground: #fbfaf6;
+  --color-ink: #0e1512;
+  --color-muted: #55615a;
+  --color-line: #e4e1d8;
+  --color-green: #14532d;
+  --color-green-deep: #0d3a1f;
+  --color-gold: #c5a047;
+  --color-panel: #f3f4ef;
+  /* Cards, inputs and dialogs: white in light mode, a lifted dark green-grey in dark mode. */
+  --color-surface: #ffffff;
+  /* Text that sits on a photo or on a white chip: always dark, in both modes. */
+  --color-coal: #0e1512;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes stretch-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0.3em, 0) scaleX(2.2);
+  }
+  55% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scaleX(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scaleX(1);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translate3d(120vw, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  /* Anchor links stop below the sticky header instead of under it. */
+  scroll-padding-top: 4.5rem;
+}
+
+/*
+ * Scroll-linked motion runs on the browser's compositor, off the main thread, so it stays smooth while the page
+ * is busy. Browsers without scroll timelines simply show the finished state.
+ */
+@keyframes parallax-text {
+  to { transform: translate3d(0, -60px, 0); }
+}
+@keyframes parallax-photo {
+  to { translate: 0 100px; }
+}
+@keyframes threshold-in {
+  from { opacity: 0; transform: translate3d(0, -90px, 0) scale(1.7); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@supports (animation-timeline: view()) {
+  .parallax-text,
+  .parallax-photo {
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+    animation-timeline: scroll(root block);
+    animation-range: 0px 1000px;
+  }
+  .parallax-text { animation-name: parallax-text; }
+  .parallax-photo { animation-name: parallax-photo; }
+  .threshold-in {
+    animation: threshold-in 1s cubic-bezier(0.45, 0, 0.55, 1) both;
+    animation-timeline: view();
+    animation-range: cover 0% cover 50%;
+  }
+}
+
+/*
+ * Dark mode. The startup script in layout.tsx sets data-theme="dark" or "light" on <html> before the page paints,
+ * from the visitor's choice (Light, Dark or System). Every colour above is redefined here, so the whole site and
+ * the dashboard follow without any per-component dark classes.
+ */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-ground: #0c110f;
+  --color-ink: #eceee8;
+  --color-muted: #9da8a1;
+  --color-line: #27312c;
+  --color-green: #2f8a55;
+  --color-green-deep: #24703f;
+  --color-gold: #d4b25a;
+  --color-panel: #121915;
+  --color-surface: #161e1a;
+  --color-red-50: #3a1717;
+  --color-red-600: #e06666;
+  --color-red-700: #f2a0a0;
+}
+/* The glass highlight edge is a faint light line in dark mode, not a bright one. */
+:root[data-theme="dark"] .glass-bar,
+:root[data-theme="dark"] .glass-bar-panel {
+  box-shadow: inset 0 -1px 0 rgb(255 255 255 / 0.04);
+}
+:root[data-theme="dark"] .glass-panel {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 24px 60px -20px rgb(0 0 0 / 0.6);
+}
+
+/* Green text needs to be brighter than green buttons to stay readable on a dark background. */
+:root[data-theme="dark"] .text-green,
+:root[data-theme="dark"] .hover\:text-green:hover,
+:root[data-theme="dark"] .group:hover .group-hover\:text-green {
+  color: #5fbf85;
+}
+
+html {
+  color-scheme: light;
+  /* Stops Android browsers from enlarging text on their own when the phone is turned sideways. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: rgb(20 83 45 / 0.12);
+}
+
+a,
+button,
+summary,
+label,
+select {
+  /* Taps respond at once, with no double-tap-to-zoom delay. */
+  touch-action: manipulation;
+}
+
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Frosted glass for everything that floats over the page. Desktop only: on phones the panels stay solid, because a
+ * blur repainted on every scroll frame is what makes budget Android phones lag. People who ask their system for
+ * less transparency get solid panels everywhere.
+ */
+@utility glass-bar {
+  background: var(--color-ground);
+  @media (min-width: 768px) and (hover: hover) and (prefers-reduced-transparency: no-preference) {
+    @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+      background: color-mix(in srgb, var(--color-ground) 58%, transparent);
+      -webkit-backdrop-filter: blur(20px) saturate(170%);
+      backdrop-filter: blur(20px) saturate(170%);
+      box-shadow: inset 0 -1px 0 rgb(255 255 255 / 0.5);
+    }
+  }
+}
+@utility glass-bar-panel {
+  background: var(--color-panel);
+  @media (min-width: 768px) and (hover: hover) and (prefers-reduced-transparency: no-preference) {
+    @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+      background: color-mix(in srgb, var(--color-panel) 60%, transparent);
+      -webkit-backdrop-filter: blur(20px) saturate(170%);
+      backdrop-filter: blur(20px) saturate(170%);
+      box-shadow: inset 0 -1px 0 rgb(255 255 255 / 0.5);
+    }
+  }
+}
+@utility glass-panel {
+  background: var(--color-surface);
+  @media (min-width: 768px) and (hover: hover) and (prefers-reduced-transparency: no-preference) {
+    @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+      background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      backdrop-filter: blur(28px) saturate(180%);
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7), 0 24px 60px -20px rgb(14 21 18 / 0.35);
+    }
+  }
+}
+/* The dimmed layer behind a popup: the page behind it softens instead of just going dark. */
+@utility glass-scrim {
+  &::backdrop {
+    background: rgb(14 21 18 / 0.6);
+  }
+  @media (min-width: 768px) and (hover: hover) and (prefers-reduced-transparency: no-preference) {
+    &::backdrop {
+      background: rgb(14 21 18 / 0.28);
+      -webkit-backdrop-filter: blur(10px) saturate(130%);
+      backdrop-filter: blur(10px) saturate(130%);
+    }
+  }
+}
+
+/*
+ * Buttons with an icon (.icon-btn): on hover the button zooms in a little and its icon slides in from the left
+ * inside the button, then does its own small thing (the envelope opens, the house lights up, WhatsApp rings). Pressing zooms it back down. Only on devices with a real pointer.
+ */
+.icon-btn {
+  transition: background-color 0.25s ease, transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.25), box-shadow 0.35s ease;
+}
+.btn-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 0;
+  margin-right: 0;
+  overflow: hidden;
+  transition: width 0.35s cubic-bezier(0.2, 0.9, 0.3, 1), margin 0.35s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.btn-icon svg {
+  width: 1.35em;
+  height: 1.35em;
+  flex: none;
+  opacity: 0;
+  transform: translate3d(-130%, 0, 0) rotate(-12deg);
+  transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.25s ease;
+}
+.enq-flap {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  transition: transform 0.3s ease 0s;
+}
+/* The envelope is filled with the button colour, so the letter hides inside it until the flap opens. */
+.enq-body,
+.enq-letter {
+  fill: var(--color-green-deep);
+}
+.enq-letter {
+  opacity: 0;
+  transform: translate3d(0, 3px, 0);
+  transition: transform 0.3s ease, opacity 0.2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn:hover:not(:disabled) {
+    transform: scale(1.05);
+    box-shadow: 0 12px 28px -12px rgb(20 83 45 / 0.75);
+  }
+  .icon-btn:hover:not(:disabled) .btn-icon {
+    width: 1.35em;
+    margin-right: 0.5em;
+  }
+  .icon-btn:hover:not(:disabled) .btn-icon svg {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0);
+  }
+  /* The flap opens once the envelope has arrived. */
+  .icon-btn:hover:not(:disabled) .enq-flap {
+    transform: scaleY(-1);
+    transition-delay: 0.3s;
+  }
+  .icon-btn:hover:not(:disabled) .enq-letter {
+    opacity: 1;
+    transform: translate3d(0, -5px, 0);
+    transition-delay: 0.5s;
+  }
+}
+/* The outlined button gets a neutral shadow instead of the green glow. */
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn.icon-btn-outline:hover {
+    box-shadow: 0 12px 28px -14px rgb(14 21 18 / 0.35);
+  }
+  /* A full-width button only needs a touch of zoom to feel the same. */
+  .icon-btn.icon-btn-wide:hover:not(:disabled) {
+    transform: scale(1.015);
+  }
+  .icon-btn:hover .house-window {
+    fill: var(--color-gold);
+    stroke: var(--color-gold);
+    transition-delay: 0.32s;
+  }
+  .icon-btn:hover .wa-ring {
+    animation: wa-ring 0.6s ease 0.35s;
+  }
+}
+.house-window {
+  transition: fill 0.3s ease, stroke 0.3s ease;
+}
+@keyframes wa-ring {
+  0%, 100% { rotate: 0deg; }
+  20% { rotate: -14deg; }
+  40% { rotate: 12deg; }
+  60% { rotate: -8deg; }
+  80% { rotate: 4deg; }
+}
+.icon-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Hero slideshow: a slow zoom on the current photo. */
+@keyframes kenburns {
+  from { transform: scale(1); }
+  to { transform: scale(1.07); }
+}
+.hero-kenburns {
+  animation: kenburns 6.5s ease-out both;
+}
+.hero-caption {
+  animation: rise 0.6s ease-out 0.35s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
