@@ -1,6 +1,7 @@
 "use client";
 
 import { MailIcon } from "./ButtonIcons";
+import { TURNSTILE_SITE_KEY, Turnstile, type TurnstileHandle } from "./Turnstile";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ENQUIRY_PRESET, type EnquiryPreset } from "@/lib/scroll";
 import { assistFeeLabel } from "@/lib/pricing";
@@ -52,6 +53,9 @@ export function EnquiryForm({ facilities }: { facilities: string[] }) {
   // Spam checks: when the form was opened, and a hidden field that only a bot fills in.
   const startedAt = useRef(0);
   const [trap, setTrap] = useState("");
+  // The CAPTCHA token, which works once. Empty until Cloudflare has checked the visitor.
+  const [captcha, setCaptcha] = useState("");
+  const captchaBox = useRef<TurnstileHandle>(null);
   useEffect(() => {
     startedAt.current = Date.now();
   }, []);
@@ -102,8 +106,10 @@ export function EnquiryForm({ facilities }: { facilities: string[] }) {
       const res = await fetch("/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, turnstileToken: captcha }),
       });
+      // A token works once, so ask for a fresh one whatever the answer was.
+      if ((body as { action?: string }).action !== "verify") captchaBox.current?.reset();
       const json = (await res.json()) as ApiResponse;
       if (json.success && json.data) return next(json.data);
       setMessage(json.error ?? "Something went wrong. Please try again.");
@@ -115,6 +121,11 @@ export function EnquiryForm({ facilities }: { facilities: string[] }) {
 
   /** Step 1: send the enquiry. A code is emailed to the customer. */
   function requestCode() {
+    if (TURNSTILE_SITE_KEY && !captcha) {
+      setMessage("One moment, we are checking that you are not a robot. Please try again in a second or two.");
+      setStatus(awaitingCode ? "code" : "failed");
+      return;
+    }
     setCode("");
     return send({ ...lead, source: visitSource(), website: trap, startedAt: startedAt.current }, () => {
       setMessage("");
@@ -197,6 +208,7 @@ export function EnquiryForm({ facilities }: { facilities: string[] }) {
             {message}
           </p>
         )}
+        <Turnstile ref={captchaBox} action="enquiry" onToken={setCaptcha} />
         <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
           <button
             type="submit"
@@ -394,10 +406,11 @@ export function EnquiryForm({ facilities }: { facilities: string[] }) {
       )}
 
       <div className="sm:col-span-2">
+        <Turnstile ref={captchaBox} action="enquiry" onToken={setCaptcha} />
         <button
           type="submit"
           disabled={status === "sending"}
-          className="inline-flex min-h-14 w-full items-center justify-center rounded-full bg-green px-8 text-base font-semibold text-white icon-btn icon-btn-wide hover:bg-green-deep disabled:opacity-60"
+          className="mt-0 inline-flex min-h-14 w-full items-center justify-center rounded-full bg-green px-8 text-base font-semibold text-white icon-btn icon-btn-wide hover:bg-green-deep disabled:opacity-60"
         >
           <MailIcon />
           {status === "sending" ? "Sending…" : "Send enquiry"}

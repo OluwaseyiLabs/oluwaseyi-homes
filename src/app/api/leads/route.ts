@@ -3,12 +3,14 @@ import { submitLead } from "@/lib/n8n";
 import { getFacilities } from "@/lib/data";
 import { siteUrl } from "@/lib/party";
 import { genericError, logError } from "@/lib/errors";
-import { allow, clientKey } from "@/lib/ratelimit";
+import { allow, clientIp, clientKey } from "@/lib/ratelimit";
+import { turnstileEnabled, verifyTurnstile } from "@/lib/turnstile";
 import { REFUSED, cleanEmail, cleanPhone, cleanText, looksLikeInstructions } from "@/lib/sanitize";
 import { emptyLead, needsMatch, onlyFacilities, validateLead, type LeadInput } from "@/lib/validation";
 
 const bad = (error: string, status = 400) => NextResponse.json({ success: false, data: null, error }, { status });
 const tooMany = () => bad("You have tried too many times. Please wait a few minutes before trying again.", 429);
+const notHuman = () => bad("We could not confirm you are not a robot. Please try again.", 400);
 const tooFast = () => bad("That was very quick. Please slow down, check your details and send again in a few seconds.", 429);
 /** What a bot is told: the same as a real success, so it learns nothing and does not retry. */
 const pretend = () => NextResponse.json({ success: true, data: { message: "We have sent a 6-digit code to your email.", step: "code" }, error: null });
@@ -56,6 +58,13 @@ export async function POST(req: Request) {
 
   const errors = validateLead(lead);
   if (Object.keys(errors).length > 0) return bad(Object.values(errors).join(" "));
+  // The CAPTCHA comes after the form is known to be valid (so a typo never uses up a token) and before anything that
+  // costs money or sends email.
+  if (turnstileEnabled()) {
+    const human = await verifyTurnstile(plain("turnstileToken", 2100), "enquiry", clientIp(req.headers));
+    if (human === "unreachable") return bad("We could not run the security check just now. Please try again in a moment.", 503);
+    if (human !== "ok") return notHuman();
+  }
   if (!(await allow(`lead-ip:${await clientKey()}`, 10, 3600)) || !(await allow(`lead-email:${lead.email}`, 3, 900))) return tooMany();
 
   lead.source = lead.source.replace(/[^\w .:-]/g, "").slice(0, 80);

@@ -11,17 +11,17 @@ const supabaseHost = (() => {
 })();
 
 /**
- * What the browser is allowed to load and connect to. Scripts may only come from this site and Paystack (the
- * payment window). The inline allowance is needed by Next.js itself; everything else is locked to this site.
+ * What the browser is allowed to load and connect to. Scripts may only come from this site, Paystack (the
+ * payment window) and Cloudflare (the CAPTCHA). The inline allowance is needed by Next.js itself; everything else is locked to this site.
  */
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://js.paystack.co",
+  "script-src 'self' 'unsafe-inline' https://js.paystack.co https://challenges.cloudflare.com",
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob:${supabaseHost ? ` https://${supabaseHost}` : ""}`,
   "font-src 'self' data:",
-  `connect-src 'self'${supabaseHost ? ` https://${supabaseHost}` : ""} https://api.paystack.co https://*.paystack.co https://*.paystack.com`,
-  "frame-src https://checkout.paystack.com https://*.paystack.co https://*.paystack.com",
+  `connect-src 'self'${supabaseHost ? ` https://${supabaseHost}` : ""} https://api.paystack.co https://*.paystack.co https://*.paystack.com https://challenges.cloudflare.com`,
+  "frame-src https://checkout.paystack.com https://*.paystack.co https://*.paystack.com https://challenges.cloudflare.com",
   "form-action 'self'",
   "base-uri 'self'",
   "object-src 'none'",
