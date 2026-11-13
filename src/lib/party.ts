@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { headers } from "next/headers";
+import { publicOrigin } from "./origin";
 import { supabaseAdmin } from "./supabase/admin";
 
 /**
@@ -9,10 +10,8 @@ import { supabaseAdmin } from "./supabase/admin";
  * address into an email. Request headers are used only on a developer's own machine.
  */
 export async function siteUrl() {
-  const fixed = process.env.SITE_URL?.trim().replace(/\/$/, "");
-  if (fixed && /^https?:\/\/[^\s/]+$/.test(fixed)) return fixed;
-  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
-  if (vercel && /^[a-z0-9.-]+$/i.test(vercel)) return `https://${vercel}`;
+  const configured = publicOrigin();
+  if (configured) return configured;
   if (process.env.NODE_ENV === "production") throw new Error("SITE_URL is not set, so emailed links cannot be built safely.");
   const h = await headers();
   return h.get("origin") ?? `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;

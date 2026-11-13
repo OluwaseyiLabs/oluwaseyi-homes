@@ -1,10 +1,11 @@
 import type { MetadataRoute } from "next";
 import { getPublishedListings } from "@/lib/data";
+import { siteOrigin } from "@/lib/origin";
 import { LEGAL_SLUGS } from "@/lib/legal";
 import { propertyPath } from "@/lib/slug";
 
 export const revalidate = 3600;
-const base = () => (process.env.SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+const base = () => siteOrigin();
 
 /** The home page and one entry for every published property, so search engines find them. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

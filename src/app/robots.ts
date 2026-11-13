@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
+import { siteOrigin } from "@/lib/origin";
 
 export default function robots(): MetadataRoute.Robots {
-  const base = (process.env.SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+  const base = siteOrigin();
   return {
     // The dashboard, the private links in emails and the enquiry tracker are not for search engines.
     rules: [{ userAgent: "*", allow: "/", disallow: ["/admin", "/r/", "/track", "/api/"] }],

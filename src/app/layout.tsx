@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { getSiteContent } from "@/lib/data";
 import { photoUrl } from "@/lib/listings";
+import { siteOrigin } from "@/lib/origin";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Tracker } from "@/components/Tracker";
 import "./globals.css";
@@ -12,8 +13,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const { site } = await getSiteContent();
   const title = `${site.name} | Your next property, made easier`;
   return {
-    // Links in previews are made complete from this address. Set SITE_URL to the live website address.
-    metadataBase: new URL(process.env.SITE_URL || "http://localhost:3000"),
+    // Links in previews are made complete from this address. It is SITE_URL, or Vercel's own production address.
+    metadataBase: new URL(siteOrigin()),
     title,
     description: site.description,
     openGraph: { title, description: site.description, siteName: site.name, type: "website", images: [{ url: photoUrl(site.heroImage) }] },
