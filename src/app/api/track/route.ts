@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { allow, clientIp, clientKey } from "@/lib/ratelimit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { TRACK_EVENTS, classifyDevice, classifySource, isBot } from "@/lib/track";
 
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
   if (event !== null && !(event in TRACK_EVENTS)) return answer();
 
   // The visitor mark: a hash of the day, the address and the browser. Only the hash is kept.
-  const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
+  const ip = clientIp(req.headers);
   const day = new Date().toISOString().slice(0, 10);
   const salt = process.env.TRACK_SALT || process.env.SUPABASE_SERVICE_ROLE_KEY || "salt";
   const visitor = createHash("sha256").update(`${salt}|${day}|${ip}|${ua}`).digest("hex").slice(0, 20);
@@ -32,6 +33,9 @@ export async function POST(req: Request) {
   if (hits.length >= 120) return answer();
   recent.set(visitor, [...hits, now]);
   if (recent.size > 5000) recent.clear();
+
+  // A ceiling per address that survives restarts and works across servers, so nobody can fill the table by changing browser names.
+  if (!(await allow(`track-ip:${await clientKey()}`, 400, 3600))) return answer();
 
   const host = req.headers.get("host") ?? "";
   await supabaseAdmin().from("page_views").insert({

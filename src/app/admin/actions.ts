@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { allow, clientKey } from "@/lib/ratelimit";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export interface SignInState {
@@ -13,6 +14,10 @@ export async function signIn(_: SignInState, form: FormData): Promise<SignInStat
   const email = String(form.get("email") ?? "").trim();
   const password = String(form.get("password") ?? "");
   if (!email || !password) return { email, error: "Enter your email and password." };
+  // Slows down password guessing: per address and per account, on top of Supabase's own limits.
+  if (!(await allow(`login-ip:${await clientKey()}`, 20, 900)) || !(await allow(`login-email:${email.toLowerCase().slice(0, 200)}`, 8, 900))) {
+    return { email, error: "Too many sign-in attempts. Please wait 15 minutes and try again." };
+  }
   const db = await supabaseServer();
   const { data, error } = await db.auth.signInWithPassword({ email, password });
   if (error || !data.user) return { email, error: "That email and password do not match an account." };

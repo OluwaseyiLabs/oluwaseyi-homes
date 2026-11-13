@@ -121,7 +121,7 @@ export function ListingInfo({ listing, detailFields, children, heading = "h2" }:
               </div>
             ))}
           </dl>
-          {listing.video && (
+          {listing.video?.startsWith("https://") && (
             <a href={listing.video} target="_blank" rel="noreferrer" className="mt-5 inline-block text-sm font-semibold text-green underline underline-offset-4">
               Watch the video tour
             </a>

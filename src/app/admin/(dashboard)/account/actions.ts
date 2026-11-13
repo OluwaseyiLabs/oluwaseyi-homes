@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
+import { allow } from "@/lib/ratelimit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
 import { logError, withId } from "@/lib/errors";
@@ -28,6 +29,7 @@ export async function changeMyPassword(current: string, next: string): Promise<{
   const user = await requireUser();
   if (next.length < 10) return { error: "Use a new password of at least 10 characters." };
   if (next === current) return { error: "The new password must be different from the current one." };
+  if (!(await allow(`password-change:${user.id}`, 5, 900))) return { error: "Too many tries. Please wait 15 minutes and try again." };
 
   // The current password is checked on a separate client, so it does not touch this browser's session.
   const check = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });

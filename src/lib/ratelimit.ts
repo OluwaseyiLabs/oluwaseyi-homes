@@ -4,10 +4,17 @@ import { headers } from "next/headers";
 import { logError } from "./errors";
 import { supabaseAdmin } from "./supabase/admin";
 
-/** The caller's address, or "unknown". Only a salted hash of it is ever stored. */
+/**
+ * The caller's address. Vercel sets x-real-ip itself and overwrites anything the client sent, so it comes first;
+ * x-forwarded-for is only a fallback for other hosts.
+ */
+export function clientIp(h: Headers) {
+  return h.get("x-real-ip")?.trim() || (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
+}
+
+/** A stable key for the caller. Only a salted hash of the address is ever stored. */
 export async function clientKey(extra = "") {
-  const h = await headers();
-  const ip = (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || h.get("x-real-ip") || "unknown";
+  const ip = clientIp(await headers());
   const salt = process.env.TRACK_SALT || process.env.SUPABASE_SERVICE_ROLE_KEY || "salt";
   return createHash("sha256").update(`${salt}|${ip}|${extra}`).digest("hex").slice(0, 32);
 }

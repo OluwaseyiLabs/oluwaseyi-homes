@@ -26,6 +26,10 @@ async function paidFolder(reference: string, pricing: Pricing) {
   if (payment === "unpaid") return bad("We could not find a successful payment of the listing fee.", 402);
   const used = await supabaseAdmin().from("agreements").select("id").eq("payment_reference", reference).limit(1);
   if (used.error) return bad("We could not check your payment just now. Please try again.", 502);
+  // A reference that already paid an invoice cannot be reused as a listing fee.
+  const invoice = await supabaseAdmin().from("leads").select("id").eq("payment_reference", reference).limit(1);
+  if (invoice.error) return bad("We could not check your payment just now. Please try again.", 502);
+  if (invoice.data.length) return bad("This payment has already been used. Each property needs its own listing fee.", 409);
   if (used.data.length) return bad("This payment has already been used for a property. Each property needs its own listing fee.", 409);
   return `sub/${reference}`;
 }

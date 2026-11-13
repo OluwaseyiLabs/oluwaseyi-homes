@@ -154,7 +154,7 @@ export function SubmissionInbox({
                   <dd className="mt-1 font-semibold">{value}</dd>
                 </div>
               ))}
-              {open.video && (
+              {open.video?.startsWith("https://") && (
                 <div>
                   <dt className="text-muted">Video</dt>
                   <dd className="mt-1 font-semibold">

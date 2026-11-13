@@ -3,10 +3,17 @@ import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { supabaseAdmin } from "./supabase/admin";
 
-/** Where emailed links should point: SITE_URL when set (the live site), otherwise wherever this request came from. */
+/**
+ * Where emailed links should point. In production this comes only from configuration (SITE_URL, or the production
+ * domain Vercel provides), never from the request, so a forged Host or Origin header cannot put another site's
+ * address into an email. Request headers are used only on a developer's own machine.
+ */
 export async function siteUrl() {
-  const fixed = process.env.SITE_URL?.replace(/\/$/, "");
-  if (fixed) return fixed;
+  const fixed = process.env.SITE_URL?.trim().replace(/\/$/, "");
+  if (fixed && /^https?:\/\/[^\s/]+$/.test(fixed)) return fixed;
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (vercel && /^[a-z0-9.-]+$/i.test(vercel)) return `https://${vercel}`;
+  if (process.env.NODE_ENV === "production") throw new Error("SITE_URL is not set, so emailed links cannot be built safely.");
   const h = await headers();
   return h.get("origin") ?? `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
 }
