@@ -171,12 +171,26 @@ export type ListingPurpose = (typeof LISTING_PURPOSES)[number];
 
 export const RELATIONSHIPS = ["Owner", "Middleman"] as const;
 
+/** How an owner is addressed in emails: "Hello Mr Bello". */
+export const OWNER_TITLES = ["Mr", "Mrs", "Miss", "Ms", "Dr", "Prof", "Chief", "Engr", "Barr", "Alhaji", "Alhaja"] as const;
+
+/** The title and name as one text: ("Mr", "Bello") -> "Mr Bello". A title the owner already typed in the name is not doubled. */
+export function withTitle(title: string, name: string): string {
+  const clean = name.trim().replace(/\s+/g, " ");
+  const known = OWNER_TITLES.find((t) => t === title);
+  if (!known) return clean;
+  const typed = new RegExp(`^(?:${OWNER_TITLES.join("|")})\\.?\\s+`, "i");
+  return `${known} ${clean.replace(typed, "")}`.trim();
+}
+
 export const MAX_IMAGES = 8;
 /** Vercel rejects request bodies over 4.5 MB, so photos are compressed in the browser to fit. */
 export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 export interface ListingInput {
   purpose: string;
+  /** One of OWNER_TITLES. */
+  title: string;
   fullName: string;
   phone: string;
   email: string;
@@ -215,6 +229,7 @@ export type ListingErrors = Partial<Record<keyof ListingInput | "images", string
 
 export const emptyListing: ListingInput = {
   purpose: "Rent",
+  title: "",
   fullName: "",
   phone: "",
   email: "",
@@ -245,6 +260,7 @@ export function validateListing(
   const errors: ListingErrors = {};
   if (!(LISTING_PURPOSES as readonly string[]).includes(input.purpose))
     errors.purpose = "Choose to rent out or to sell.";
+  if (!(OWNER_TITLES as readonly string[]).includes(input.title)) errors.title = "Choose a title.";
   if (!input.fullName.trim()) errors.fullName = "Enter your name.";
   if (!isPhone(input.phone)) errors.phone = "Enter a phone number with 7 to 20 digits.";
   if (!isEmail(input.email)) errors.email = "Enter a valid email address.";

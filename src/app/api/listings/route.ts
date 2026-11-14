@@ -8,7 +8,7 @@ import { genericError, logError } from "@/lib/errors";
 import { allow, clientKey } from "@/lib/ratelimit";
 import { REFUSED, cleanEmail, cleanPhone, cleanText, looksLikeInstructions } from "@/lib/sanitize";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { MAX_IMAGES, RENT_ONLY, emptyListing, onlyFacilities, parseNaira, validateListing, type ListingInput } from "@/lib/validation";
+import { MAX_IMAGES, RENT_ONLY, emptyListing, onlyFacilities, parseNaira, validateListing, withTitle, type ListingInput } from "@/lib/validation";
 
 const bad = (error: string, status = 400) => NextResponse.json({ success: false, data: null, error }, { status });
 const BUCKET = "submissions";
@@ -92,6 +92,9 @@ async function handle(req: Request) {
 
   const errors = validateListing(listing, { count: photos.length, bytes: 0 });
   if (Object.keys(errors).length > 0) return bad(Object.values(errors).join(" "));
+
+  // From here on the owner is "Mr Bello", exactly as the emails and the dashboard will greet them.
+  listing.fullName = withTitle(listing.title, listing.fullName);
 
   const rent = listing.purpose === "Rent";
   const fee = dealFee(pricing, rent ? "Rent" : "Sell");

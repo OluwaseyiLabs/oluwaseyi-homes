@@ -5,6 +5,7 @@ import {
   CAUTION_RATES,
   LISTING_PURPOSES,
   MAX_IMAGES,
+  OWNER_TITLES,
   PROPERTY_TYPES,
   RELATIONSHIPS,
   emptyListing,
@@ -284,8 +285,14 @@ export function ListPropertyForm({ detailFields, facilities }: { detailFields: D
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <Field label="Your name" name="list-fullName" error={errors.fullName} required>
-          <input {...props("fullName")} autoComplete="name" />
+        <Field label="Your name" name="list-fullName" error={errors.title ?? errors.fullName} required>
+          <div className="flex flex-col gap-0 min-[360px]:flex-row min-[360px]:gap-2">
+            <select {...props("title")} aria-label="Title" aria-describedby={errors.title ? "list-fullName-error" : undefined} autoComplete="honorific-prefix" className={`${inputCls} shrink-0 min-[360px]:w-28!`}>
+              <option value="">Title</option>
+              {OWNER_TITLES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <input {...props("fullName")} autoComplete="name" className={`${inputCls} min-w-0`} />
+          </div>
         </Field>
         <Field label="WhatsApp number" name="list-phone" error={errors.phone} required>
           <input {...props("phone")} type="tel" autoComplete="tel" />
