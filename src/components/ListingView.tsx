@@ -91,14 +91,7 @@ export function ListingInfo({ listing, detailFields, children, heading = "h2" }:
       <p className="mt-4 leading-relaxed text-muted">{listing.description}</p>
 
       {listing.costs && (
-        <CostBreakdown
-          costs={listing.costs}
-          note={
-            listing.sample
-              ? "Illustrative property and charges. Actual terms must be confirmed by the landlord and supported by the relevant agreements."
-              : "Actual terms must be confirmed by the landlord and supported by the relevant agreements."
-          }
-        />
+        <CostBreakdown costs={listing.costs} />
       )}
 
       {(facts.length > 0 || listing.facilities?.length) && (

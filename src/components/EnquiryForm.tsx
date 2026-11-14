@@ -23,6 +23,7 @@ import {
   type ApiResponse,
   type LeadErrors,
   type LeadInput,
+  formatBudget,
 } from "@/lib/validation";
 
 /** Where this visitor came from: a campaign tag if the link had one, else the referring site. */
@@ -293,7 +294,7 @@ export function EnquiryForm({ facilities }: { facilities: string[] }) {
         error={errors.budget}
         required={matching}
       >
-        <input {...props("budget")} placeholder="For example, ₦1,500,000" />
+        <input {...props("budget")} onBlur={() => setLead((l) => ({ ...l, budget: formatBudget(l.budget) }))} inputMode="text" placeholder="For example, ₦1,500,000" />
       </Field>
       {matching && (
         <>

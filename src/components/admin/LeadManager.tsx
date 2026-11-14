@@ -20,7 +20,7 @@ import {
 } from "@/app/admin/(dashboard)/leads/actions";
 import { Field, inputCls } from "@/components/Field";
 import { LEAD_STATUSES, confirmedText, inspectionText, releaseBlockers, successStatus, type Lead, type LeadStatus } from "@/lib/leads";
-import { naira } from "@/lib/validation";
+import { formatBudget, naira } from "@/lib/validation";
 import { OwnerPanel } from "./OwnerPanel";
 import { Badge, Card, PageHeader, btnGhost, btnPrimary } from "./ui";
 
@@ -231,7 +231,7 @@ export function LeadManager({
               <div><dt className="text-muted">Email</dt><dd className="mt-1 break-words font-semibold">{open.customer.email} <span className={open.customer.emailVerified ? "font-normal text-green" : "font-normal text-red-700"}>({open.customer.emailVerified ? "verified" : "not verified"})</span></dd></div>
               <div><dt className="text-muted">Phone</dt><dd className="mt-1 font-semibold">{open.customer.phone}</dd></div>
               <div><dt className="text-muted">Looking for</dt><dd className="mt-1 font-semibold">{[open.propertyType, open.location].filter(Boolean).join(" in ")}</dd></div>
-              <div><dt className="text-muted">Budget</dt><dd className="mt-1 font-semibold">{open.budget || "Not given"}</dd></div>
+              <div><dt className="text-muted">Budget</dt><dd className="mt-1 font-semibold">{open.budget ? formatBudget(open.budget) : "Not given"}</dd></div>
               <div><dt className="text-muted">Intended move-in date</dt><dd className="mt-1 font-semibold">{open.moveIn}</dd></div>
               <div><dt className="text-muted">Essential facilities</dt><dd className="mt-1 font-semibold">{open.facilities.join(", ") || "None chosen"}</dd></div>
               <div><dt className="text-muted">Tenant assistance service</dt><dd className="mt-1 font-semibold">{open.assistance ? "Requested" : "Not requested"}</dd></div>

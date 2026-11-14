@@ -2,7 +2,7 @@ import { moveInCost, type Costs } from "@/lib/listings";
 import { naira } from "@/lib/validation";
 
 /** Everything a tenant pays to move in, row by row, with the total. */
-export function CostBreakdown({ costs, note }: { costs: Costs; note: string }) {
+export function CostBreakdown({ costs, note }: { costs: Costs; note?: string }) {
   const { rows, total } = moveInCost(costs);
   return (
     <section className="mt-6 border-t border-line pt-6">
@@ -19,7 +19,7 @@ export function CostBreakdown({ costs, note }: { costs: Costs; note: string }) {
           <dd className="text-2xl font-extrabold tracking-tight text-green tabular-nums">{naira(total)}</dd>
         </div>
       </dl>
-      <p className="mt-3 text-sm text-muted">{note}</p>
+      {note && <p className="mt-3 text-sm text-muted">{note}</p>}
     </section>
   );
 }

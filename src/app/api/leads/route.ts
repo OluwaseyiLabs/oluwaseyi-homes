@@ -6,7 +6,7 @@ import { genericError, logError } from "@/lib/errors";
 import { allow, clientIp, clientKey } from "@/lib/ratelimit";
 import { turnstileEnabled, verifyTurnstile } from "@/lib/turnstile";
 import { REFUSED, cleanEmail, cleanPhone, cleanText, looksLikeInstructions } from "@/lib/sanitize";
-import { emptyLead, needsMatch, onlyFacilities, validateLead, type LeadInput } from "@/lib/validation";
+import { emptyLead, formatBudget, needsMatch, onlyFacilities, validateLead, type LeadInput } from "@/lib/validation";
 
 const bad = (error: string, status = 400) => NextResponse.json({ success: false, data: null, error }, { status });
 const tooMany = () => bad("You have tried too many times. Please wait a few minutes before trying again.", 429);
@@ -67,6 +67,8 @@ export async function POST(req: Request) {
   }
   if (!(await allow(`lead-ip:${await clientKey()}`, 10, 3600)) || !(await allow(`lead-email:${lead.email}`, 3, 900))) return tooMany();
 
+  // The budget is stored as naira with commas, so the dashboard, the emails and the sheet all read it the same way.
+  lead.budget = formatBudget(lead.budget);
   lead.source = lead.source.replace(/[^\w .:-]/g, "").slice(0, 80);
   // Identifiers must look like identifiers.
   if (lead.listingId && !/^[\w-]{1,40}$/.test(lead.listingId)) lead.listingId = "";

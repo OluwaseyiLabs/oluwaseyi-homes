@@ -38,6 +38,22 @@ export const CAUTION_RATES = ["5%", "6%", "7%", "8%", "9%", "10%"] as const;
 export const parseNaira = (v: string) => Number(v.replace(/\D/g, "")) || 0;
 export const naira = (n: number) => `₦${Math.round(n).toLocaleString("en-US")}`;
 
+/**
+ * A budget typed in any common way, shown as naira with commas: "1500000", "1,500,000", "N1.5m" and
+ * "1.5 million" all become "₦1,500,000". Anything else (a range such as "1m to 2m", or words) is left as typed.
+ */
+export function formatBudget(text: string): string {
+  const m = text.trim().match(/^[₦N]?\s*(\d{1,3}(?:[,\s]\d{3})+|\d+(?:\.\d+)?)\s*(m|mn|million|k|thousand)?\s*(?:naira|ngn)?$/i);
+  if (!m) return text;
+  const unit = (m[2] ?? "").toLowerCase();
+  // A bare decimal such as "1.5" is ambiguous, so it is left alone.
+  if (!unit && m[1].includes(".")) return text;
+  let n = Number(m[1].replace(/[,\s]/g, ""));
+  if (unit.startsWith("m")) n *= 1_000_000;
+  else if (unit) n *= 1_000;
+  return n >= 1 ? naira(n) : text;
+}
+
 /** Today in Lagos as YYYY-MM-DD. */
 export const lagosToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Lagos" }).format(new Date());
 /** A date `n` days after a YYYY-MM-DD date. */
