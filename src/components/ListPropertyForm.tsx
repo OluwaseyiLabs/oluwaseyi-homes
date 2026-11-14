@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   CAUTION_RATES,
   LISTING_PURPOSES,
@@ -26,6 +26,7 @@ import { useSite } from "./SiteProvider";
 import { DetailInput } from "./DetailInput";
 import { FacilityPicker } from "./FacilityPicker";
 import { Field, inputCls } from "./Field";
+import { PhotoDropzone } from "./PhotoDropzone";
 
 interface Photo {
   file: File;
@@ -107,9 +108,7 @@ export function ListPropertyForm({ detailFields, facilities }: { detailFields: D
     "aria-describedby": errors[key] ? `list-${key}-error` : undefined,
   });
 
-  async function addPhotos(e: ChangeEvent<HTMLInputElement>) {
-    const picked = Array.from(e.target.files ?? []);
-    e.target.value = "";
+  async function addPhotos(picked: File[]) {
     const room = MAX_IMAGES - photos.length;
     if (picked.length === 0) return;
     setBusy(true);
@@ -414,25 +413,8 @@ export function ListPropertyForm({ detailFields, facilities }: { detailFields: D
                 </button>
               </div>
             ))}
-            {photos.length < MAX_IMAGES && (
-              <label
-                htmlFor="list-images"
-                className="grid grid-cols-1 aspect-square cursor-pointer place-items-center rounded-xl border-2 border-dashed border-ink/25 text-center text-sm font-semibold text-muted transition hover:border-green hover:text-green has-[:focus-visible]:border-green has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-green/20"
-              >
-                {busy ? "Adding…" : "+ Add photos"}
-                <input
-                  id="list-images"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={addPhotos}
-                  disabled={busy}
-                  className="sr-only"
-                  aria-describedby={errors.images ? "list-images-error" : undefined}
-                />
-              </label>
-            )}
           </div>
+          <PhotoDropzone inputId="list-images" onFiles={addPhotos} busy={busy} remaining={MAX_IMAGES - photos.length} max={MAX_IMAGES} describedBy={errors.images ? "list-images-error" : undefined} />
           {errors.images && (
             <p id="list-images-error" className="mt-2 text-sm text-red-700">
               {errors.images}

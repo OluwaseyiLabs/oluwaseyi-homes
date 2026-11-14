@@ -33,6 +33,10 @@ export interface Submission {
   agreement: { version: string; acceptedAt: string; listingFee: number; feePct: number; feeDue: string; protectionMonths: number; paymentRef: string };
   /** The property created from this submission, once approved. */
   listingCode?: string;
+  /** Whether that property is on the website yet. */
+  listingPublished?: boolean;
+  /** When the owner was last emailed that it was approved. */
+  ownerEmailedAt?: string;
   status: SubmissionStatus;
   unread: boolean;
   receivedAt: string;

@@ -204,12 +204,10 @@ export async function getWaitingLeads(db: SupabaseClient) {
 
 /** Owner submissions, newest first, for a signed-in team member. Photos come back as one-hour links. */
 export async function getSubmissions(db: SupabaseClient): Promise<Submission[]> {
-  const { data, error } = await db
-    .from("submissions")
-    .select(
-      "*, owner:owners(code, name, email, whatsapp), agreement:agreements(version, accepted_at, listing_fee, fee_pct, fee_due, protection_months, payment_reference), submission_images(path, position), listings(code)",
-    )
-    .order("created_at", { ascending: false });
+  const base = "*, owner:owners(code, name, email, whatsapp), agreement:agreements(version, accepted_at, listing_fee, fee_pct, fee_due, protection_months, payment_reference), submission_images(path, position)";
+  let { data, error } = await db.from("submissions").select(`${base}, listings(code, published, owner_notified_at)`).order("created_at", { ascending: false });
+  // Before migration 0012 is run the "owner emailed" column does not exist yet: the page still works, without that detail.
+  if (error) ({ data, error } = await db.from("submissions").select(`${base}, listings(code, published)`).order("created_at", { ascending: false }));
   if (error) throw new Error(error.message);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- database rows
   const rows = data as any[];
@@ -253,6 +251,8 @@ export async function getSubmissions(db: SupabaseClient): Promise<Submission[]> 
       paymentRef: r.agreement.payment_reference,
     },
     listingCode: r.listings?.[0]?.code,
+    listingPublished: !!r.listings?.[0]?.published,
+    ownerEmailedAt: r.listings?.[0]?.owner_notified_at ?? undefined,
     status: r.status,
     unread: r.unread,
     receivedAt: r.created_at,

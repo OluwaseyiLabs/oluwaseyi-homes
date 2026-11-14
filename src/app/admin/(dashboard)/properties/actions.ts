@@ -9,6 +9,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { dealFee } from "@/lib/pricing";
 import { CAUTION_RATES, PROPERTY_TYPES, isEmail, isPhone, parseNaira } from "@/lib/validation";
 import { withId } from "@/lib/errors";
+import { emailOwnerPublished } from "@/lib/owner-notice";
 
 type Result = { error: string | null };
 const CATEGORIES = ["Rent", "Buy", "Invest"];
@@ -98,6 +99,8 @@ export async function saveListing(form: FormData): Promise<Result> {
   await removeFiles((before.data ?? []).map((p) => p.path as string).filter((p) => !photos.includes(p)));
 
   refresh();
+  // The first time a property goes on the website, its owner is told it was approved.
+  if (row.published) return emailOwnerPublished(listingId);
   return { error: null };
 }
 

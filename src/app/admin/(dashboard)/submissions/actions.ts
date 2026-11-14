@@ -6,6 +6,7 @@ import { SUBMISSION_STATUSES, type SubmissionStatus } from "@/lib/submissions";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
 import { withId } from "@/lib/errors";
+import { emailOwnerPublished } from "@/lib/owner-notice";
 
 type Result = { error: string | null; listingCode?: string };
 const isId = (id: string) => /^[0-9a-f-]{36}$/.test(id);
@@ -98,4 +99,17 @@ export async function approveSubmission(id: string): Promise<Result> {
   });
   revalidatePath("/admin/properties");
   return done({ listingCode: listing.code });
+}
+
+/**
+ * The "Send approval email to owner" button: tells the owner their property was approved and is on the website,
+ * with the link to see it. Works the first time and again later. The property must be published.
+ */
+export async function sendApprovalEmail(submissionId: string): Promise<Result> {
+  const user = await requireUser("approve");
+  if (!isId(submissionId)) return { error: "That submission could not be found." };
+  const { data: listing } = await supabaseAdmin().from("listings").select("id").eq("submission_id", submissionId).maybeSingle();
+  if (!listing) return { error: "Approve this submission first: there is no property for it yet." };
+  const sent = await emailOwnerPublished(listing.id as string, { manual: true, actor: user.name });
+  return sent.error ? sent : done();
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { approveSubmission, markRead, setSubmissionStatus } from "@/app/admin/(dashboard)/submissions/actions";
+import { approveSubmission, markRead, sendApprovalEmail, setSubmissionStatus } from "@/app/admin/(dashboard)/submissions/actions";
 import { CostBreakdown } from "@/components/CostBreakdown";
 import { formatDetail, type DetailField } from "@/lib/listings";
 import type { Submission } from "@/lib/submissions";
@@ -178,13 +178,39 @@ export function SubmissionInbox({
 
           <div className="mt-8 border-t border-line pt-6">
             {open.listingCode ? (
-              <p id="sub-approved" className="text-sm">
-                Approved. Property <strong>{open.listingCode}</strong> was created as a draft with this owner and agreement.{" "}
-                <Link href="/admin/properties" className="font-semibold text-green underline underline-offset-4">
-                  Open Properties to finish and publish it
-                </Link>
-                .
-              </p>
+              <div>
+                <p id="sub-approved" className="text-sm">
+                  Approved. Property <strong>{open.listingCode}</strong> was created as a draft with this owner and agreement.{" "}
+                  <Link href="/admin/properties" className="font-semibold text-green underline underline-offset-4">
+                    Open Properties to finish and publish it
+                  </Link>
+                  .
+                </p>
+                {canApprove && (
+                  <div id="sub-notify" className="mt-5 rounded-2xl border border-line bg-panel p-4 sm:p-5">
+                    <h3 className="font-bold">Tell the owner</h3>
+                    <p className="mt-1 text-sm text-muted">
+                      Emails {open.owner.name} ({open.owner.email}) that the property was approved and is on the website, with a link to see it.
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={pending || !open.listingPublished}
+                        onClick={() =>
+                          (!open.ownerEmailedAt || window.confirm(`The owner was already emailed on ${when(open.ownerEmailedAt)}. Send it again?`)) && run(() => sendApprovalEmail(open.dbId))
+                        }
+                        className={btnPrimary}
+                      >
+                        {pending ? "Sending…" : open.ownerEmailedAt ? "Send the approval email again" : "Send approval email to owner"}
+                      </button>
+                      {open.ownerEmailedAt && <span className="text-sm font-medium text-green">Sent on {when(open.ownerEmailedAt)}</span>}
+                    </div>
+                    {!open.listingPublished && (
+                      <p className="mt-3 text-sm text-muted">Publish the property first (Properties, then tick Published). The email links to its page on the website.</p>
+                    )}
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="flex flex-wrap items-center gap-3">
                 {canApprove && open.status !== "Rejected" && (

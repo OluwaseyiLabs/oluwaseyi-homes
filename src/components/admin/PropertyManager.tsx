@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { addDetailField, addFacility, deleteListing, removeDetailField, removeFacility, saveListing } from "@/app/admin/(dashboard)/properties/actions";
 import { Field, inputCls } from "@/components/Field";
+import { PhotoDropzone } from "@/components/PhotoDropzone";
 import { ListingCard } from "@/components/ListingCard";
 import { ListingDetail } from "@/components/ListingDetail";
 import { compress } from "@/lib/image";
@@ -110,9 +111,8 @@ function Editor({
     ref.current?.showModal();
   }, []);
 
-  async function addPhotos(e: ChangeEvent<HTMLInputElement>) {
-    const picked = Array.from(e.target.files ?? []).slice(0, MAX_PHOTOS - photos.length);
-    e.target.value = "";
+  async function addPhotos(files: File[]) {
+    const picked = files.slice(0, MAX_PHOTOS - photos.length);
     if (!picked.length) return;
     setBusy("photos");
     setError("");
@@ -430,16 +430,8 @@ function Editor({
                   )}
                 </div>
               ))}
-              {photos.length < MAX_PHOTOS && (
-                <label
-                  htmlFor="p-photos"
-                  className="grid grid-cols-1 aspect-square cursor-pointer place-items-center rounded-xl border-2 border-dashed border-ink/25 text-center text-sm font-semibold text-muted transition hover:border-green hover:text-green has-[:focus-visible]:border-green"
-                >
-                  {busy === "photos" ? "Uploading…" : "+ Add photos"}
-                  <input id="p-photos" type="file" accept="image/*" multiple onChange={addPhotos} disabled={busy !== ""} className="sr-only" />
-                </label>
-              )}
             </div>
+            <PhotoDropzone inputId="p-photos" onFiles={addPhotos} busy={busy !== ""} remaining={MAX_PHOTOS - photos.length} max={MAX_PHOTOS} />
           </div>
 
           <label className="flex items-start gap-3 text-sm font-semibold sm:col-span-2">
