@@ -46,7 +46,7 @@ The team email says only "new property submission, check the dashboard" with the
 
 ## The List Property sheet
 After the owner is answered, **Save listing to sheet** adds one row to the *List Property* tab of the lead spreadsheet, so there is a record outside the website if it is ever down. Only the essentials are saved; everything else is in the dashboard (the row has a link to it). No photos.
-Row 1 of the tab must hold these headings, spelled exactly: `Timestamp`, `Reference`, `Category` (List property to rent / List property to sell), `Name` (title and name), `WhatsApp number`, `Email`, `Relationship`, `Property type`, `Address`, `Area`, `Bedrooms`, `Rent or price`, `Listing fee`, `Listing fee paid`, `Payment reference`, `Agreement accepted`, `Dashboard link`.
+Row 1 of the tab must hold these headings, spelled exactly: `Timestamp`, `Reference`, `Category` (List property to rent / List property to sell), `Name` (title and name), `WhatsApp number`, `Email`, `Relationship`, `Property type`, `Address`, `Area`, `Bedrooms`, `Rent or price`, `Listing fee`, `Listing fee paid`, `Payment reference`, `Agreement accepted` (Yes, the date and time, and the agreement version, e.g. `Yes, 15 Nov 2026, 00:50 (version 2026-11)`), `Dashboard link`.
 It is written as plain text (cell format RAW): phone numbers keep their leading zero and nothing a visitor types can become a spreadsheet formula. A sheet problem never affects the owner's confirmation or the team email.
 Only owner submissions are saved here. Properties the team adds itself in the dashboard are not.
 

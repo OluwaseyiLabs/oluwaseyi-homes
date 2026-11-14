@@ -1113,7 +1113,7 @@
             "Listing fee": "={{ '₦' + Number($('Check submission').first().json.p.listingFee).toLocaleString('en-US') }}",
             "Listing fee paid": "Yes",
             "Payment reference": "={{ $('Check submission').first().json.p.paymentReference }}",
-            "Agreement accepted": "={{ 'Yes (' + $('Check submission').first().json.p.agreementVersion + ')' }}",
+            "Agreement accepted": "={{ 'Yes, ' + $now.setZone('Africa/Lagos').toFormat('dd LLL yyyy, HH:mm') + ' (version ' + $('Check submission').first().json.p.agreementVersion + ')' }}",
             "Dashboard link": "={{ $('Check submission').first().json.config.dashboard + '?id=' + $('Store submission').first().json.code }}"
           },
           "matchingColumns": [],
