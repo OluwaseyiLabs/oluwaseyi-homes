@@ -148,11 +148,11 @@ export function BarChart({ data, unit }: { data: [string, number][]; unit: strin
 export function RankBars({ data }: { data: [string, number][] }) {
   const max = Math.max(1, ...data.map(([, v]) => v));
   return (
-    <ul className="mt-4 grid gap-3.5">
+    <ul className="mt-4 grid grid-cols-1 gap-3.5">
       {data.map(([label, v]) => (
         <li key={label}>
           <div className="flex items-baseline justify-between gap-3 text-sm">
-            <span className="truncate font-medium">{label}</span>
+            <span className="min-w-0 truncate font-medium">{label}</span>
             <span className="tabular-nums text-muted">{v}</span>
           </div>
           <div className="mt-1.5 h-2 rounded-full bg-line">

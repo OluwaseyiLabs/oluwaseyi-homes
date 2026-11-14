@@ -8,10 +8,10 @@ import { signIn } from "../actions";
 export function LoginForm({ name, off, changed }: { name: string; off: boolean; changed: boolean }) {
   const [state, action, pending] = useActionState(signIn, { error: "", email: "" });
   return (
-    <main className="grid min-h-svh place-items-center bg-panel px-5 py-12 text-ink">
+    <main className="grid grid-cols-1 min-h-svh place-items-center bg-panel px-5 py-12 text-ink">
       <div className="w-full max-w-md">
         <Logo name={name} />
-        <form action={action} className="mt-8 grid gap-5 rounded-3xl border border-line bg-surface p-6 sm:p-8">
+        <form action={action} className="mt-8 grid grid-cols-1 gap-5 rounded-3xl border border-line bg-surface p-6 sm:p-8">
           <h1 className="text-2xl font-extrabold tracking-tight">Sign in to the dashboard</h1>
           {changed && (
             <p id="login-changed" role="status" className="rounded-xl bg-green/10 p-3 text-sm font-medium text-green">

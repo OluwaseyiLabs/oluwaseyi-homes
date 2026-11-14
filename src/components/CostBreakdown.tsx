@@ -7,7 +7,7 @@ export function CostBreakdown({ costs, note }: { costs: Costs; note: string }) {
   return (
     <section className="mt-6 border-t border-line pt-6">
       <h3 className="text-lg font-bold">Complete payment breakdown</h3>
-      <dl className="mt-3 grid gap-3">
+      <dl className="mt-3 grid grid-cols-1 gap-3">
         {rows.map(([label, amount]) => (
           <div key={label} className="flex items-baseline justify-between gap-4">
             <dt>{label}</dt>

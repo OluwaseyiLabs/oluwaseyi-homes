@@ -69,7 +69,7 @@ export function OwnerPanel({
   if (owner && agreement) {
     return (
       <div id="owner-panel">
-        <dl className="grid gap-4 text-sm sm:grid-cols-2">
+        <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
           <div><dt className="text-muted">Owner ({owner.code})</dt><dd className="mt-1 font-semibold">{owner.name}</dd></div>
           <div><dt className="text-muted">WhatsApp</dt><dd className="mt-1 font-semibold">{owner.whatsapp}</dd></div>
           <div className="sm:col-span-2"><dt className="text-muted">Email</dt><dd className="mt-1 break-words font-semibold">{owner.email}</dd></div>
@@ -108,7 +108,7 @@ export function OwnerPanel({
         </dl>
         {canApprove &&
           (editing ? (
-            <form onSubmit={saveContact} noValidate className="mt-5 grid gap-4 rounded-2xl border border-line bg-panel p-4 sm:grid-cols-3">
+            <form onSubmit={saveContact} noValidate className="mt-5 grid grid-cols-1 gap-4 rounded-2xl border border-line bg-panel p-4 sm:grid-cols-3">
               <Field label="Name" name="oc-name" required>
                 <input id="oc-name" value={contact.name} onChange={(e) => setContact((c) => ({ ...c, name: e.target.value }))} className={inputCls} />
               </Field>
@@ -141,7 +141,7 @@ export function OwnerPanel({
   }
 
   return (
-    <form id="owner-panel" onSubmit={save} noValidate className="grid gap-5 sm:grid-cols-2">
+    <form id="owner-panel" onSubmit={save} noValidate className="grid grid-cols-1 gap-5 sm:grid-cols-2">
       <p className="text-sm text-muted sm:col-span-2">
         Use this for a property you found yourself. Add the owner and record that they agreed to the Property Listing and Agency
         Agreement. Until you do, no customer can be given this owner&apos;s contact.
@@ -160,7 +160,7 @@ export function OwnerPanel({
 
       <div className="rounded-2xl border border-line bg-panel p-4 text-sm sm:col-span-2">
         <p className="font-semibold">Terms the owner agrees to</p>
-        <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+        <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div><dt className="text-muted">{rent ? "Agency fee" : "Sale commission"}</dt><dd className="mt-0.5 font-semibold">{fee.amount}, paid by the {rent ? "landlord" : "seller"}</dd></div>
           <div><dt className="text-muted">Protection period</dt><dd className="mt-0.5 font-semibold">{pricing.protectionMonths} months from each introduction</dd></div>
           <div className="sm:col-span-2"><dt className="text-muted">Fee becomes payable</dt><dd className="mt-0.5 font-semibold">{fee.due}</dd></div>

@@ -9,7 +9,7 @@ export function TrackLookup() {
   const [state, action, pending] = useActionState(lookupEnquiry, { error: "", progress: null });
   return (
     <>
-      <form action={action} className="grid gap-5" noValidate>
+      <form action={action} className="grid grid-cols-1 gap-5" noValidate>
         <Field label="Your reference (for example OHP-L-000012)" name="code" required>
           <input id="code" name="code" autoComplete="off" className={inputCls} />
         </Field>

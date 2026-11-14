@@ -57,9 +57,9 @@ export function ListingDetail({
       aria-label={listing.title}
       className="m-auto max-h-[92svh] w-[min(64rem,calc(100%-1.5rem))] overflow-y-auto glass-panel glass-scrim rounded-3xl border border-white/60 p-0 text-ink"
     >
-      <div className="grid lg:grid-cols-[1.3fr_1fr]">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <ListingGallery listing={listing} />
-        <div className="flex flex-col p-6 sm:p-8">
+        <div className="flex min-w-0 flex-col p-6 sm:p-8">
           <button
             type="button"
             aria-label="Close"
@@ -69,7 +69,7 @@ export function ListingDetail({
             ×
           </button>
           <ListingInfo listing={listing} detailFields={detailFields}>
-            <div className="mt-8 grid gap-3">
+            <div className="mt-8 grid grid-cols-1 gap-3">
               <button
                 type="button"
                 data-track={preview ? undefined : "enquire_property"}

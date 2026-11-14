@@ -248,7 +248,7 @@ export function EnquiryForm({ facilities }: { facilities: string[] }) {
     <form
       onSubmit={onSubmit}
       noValidate
-      className="grid gap-5 rounded-3xl border border-line bg-surface p-6 sm:grid-cols-2 sm:p-10"
+      className="grid grid-cols-1 gap-5 rounded-3xl border border-line bg-surface p-6 sm:grid-cols-2 sm:p-10"
     >
       <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
         <label>
@@ -319,7 +319,7 @@ export function EnquiryForm({ facilities }: { facilities: string[] }) {
                 </span>
               </label>
               {(wantsInspection || lead.inspectionDate) && (
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Preferred date" name="inspectionDate" error={errors.inspectionDate} required>
                     <input {...props("inspectionDate")} type="date" min={lagosToday()} max={addDays(lagosToday(), INSPECTION_DAYS)} />
                   </Field>

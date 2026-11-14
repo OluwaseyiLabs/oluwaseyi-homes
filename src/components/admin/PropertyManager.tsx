@@ -52,7 +52,7 @@ function PreviewDialog({ listing, fields, onClose }: { listing: Listing; fields:
           <p className="mt-3 rounded-xl bg-gold/20 p-3 text-sm">Visitors will not see this until you tick Published.</p>
         )}
         {listing.images.length === 0 && <p className="mt-3 rounded-xl bg-gold/20 p-3 text-sm">No photos yet. Add at least one before saving.</p>}
-        <div className="mt-5 grid">
+        <div className="mt-5 grid grid-cols-1">
           <ListingCard listing={listing} index={0} onOpen={() => setOpen(true)} />
         </div>
       </div>
@@ -218,7 +218,7 @@ function Editor({
             This is a sample with made-up details. Delete it once a real property takes its place.
           </p>
         )}
-        <div className="mt-6 grid gap-5 sm:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Field label="Show under" name="p-category" required>
             <select id="p-category" name="category" className={inputCls} value={category} onChange={(e) => setCategory(e.target.value)}>
               {filters.slice(1).map((c) => <option key={c}>{c}</option>)}
@@ -256,7 +256,7 @@ function Editor({
           </div>
 
           {rent && (
-            <fieldset className="grid gap-5 border-t border-line pt-5 sm:col-span-2 sm:grid-cols-2">
+            <fieldset className="grid grid-cols-1 gap-5 border-t border-line pt-5 sm:col-span-2 sm:grid-cols-2">
               <legend className="text-sm font-bold">Payment breakdown</legend>
               <p className="text-sm text-muted sm:col-span-2">
                 What the tenant pays on top of the rent. The website adds these up and shows the total move-in cost.
@@ -433,7 +433,7 @@ function Editor({
               {photos.length < MAX_PHOTOS && (
                 <label
                   htmlFor="p-photos"
-                  className="grid aspect-square cursor-pointer place-items-center rounded-xl border-2 border-dashed border-ink/25 text-center text-sm font-semibold text-muted transition hover:border-green hover:text-green has-[:focus-visible]:border-green"
+                  className="grid grid-cols-1 aspect-square cursor-pointer place-items-center rounded-xl border-2 border-dashed border-ink/25 text-center text-sm font-semibold text-muted transition hover:border-green hover:text-green has-[:focus-visible]:border-green"
                 >
                   {busy === "photos" ? "Uploading…" : "+ Add photos"}
                   <input id="p-photos" type="file" accept="image/*" multiple onChange={addPhotos} disabled={busy !== ""} className="sr-only" />
@@ -524,7 +524,7 @@ export function PropertyManager({ listings, detailFields, facilities, can }: { l
         ))}
       </div>
       {shown.length === 0 && <p className="text-muted">No properties here yet.</p>}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {shown.map((l) => (
           <article key={l.id} className="overflow-hidden rounded-2xl border border-line bg-surface">
             <div className="relative aspect-[4/3] bg-green/10">

@@ -20,7 +20,7 @@ export function TrackView({ progress }: { progress: EnquiryProgress }) {
         </p>
       )}
       {disputed && <p className="mt-3 rounded-xl bg-gold/20 p-3 text-sm">Our team is looking into this enquiry and will be in touch.</p>}
-      <ol className="mt-6 grid gap-5">
+      <ol className="mt-6 grid grid-cols-1 gap-5">
         {steps.map((s) => (
           <li key={s.label} className="flex gap-4">
             <span

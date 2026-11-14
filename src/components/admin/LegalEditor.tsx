@@ -65,9 +65,9 @@ export function LegalEditor({ pages, history }: { pages: Page[]; history: Versio
         ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <Card>
-          <form onSubmit={save} noValidate className="grid gap-4">
+          <form onSubmit={save} noValidate className="grid grid-cols-1 gap-4">
             <Field label="Page title" name="legal-title" required>
               <input id="legal-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} className={inputCls} />
             </Field>
@@ -99,7 +99,7 @@ export function LegalEditor({ pages, history }: { pages: Page[]; history: Versio
           </form>
         </Card>
 
-        <div className="grid content-start gap-4">
+        <div className="grid grid-cols-1 content-start gap-4">
           <Card>
             <h2 className="text-lg font-bold">How to write it</h2>
             <ul className="mt-3 space-y-2 text-sm text-muted">

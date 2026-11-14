@@ -19,7 +19,7 @@ export async function Hero() {
     <div className="overflow-x-clip">
     <section
       id="top"
-      className="mx-auto grid min-h-[calc(100svh-4rem)] max-w-6xl items-center gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:gap-14"
+      className="mx-auto grid grid-cols-1 min-h-[calc(100svh-4rem)] max-w-6xl items-center gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-14"
     >
       <div className="parallax-text">
         <h1 className="text-[2.6rem] font-extrabold leading-[1.02] tracking-[-0.04em] sm:text-6xl">

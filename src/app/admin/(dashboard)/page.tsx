@@ -29,7 +29,7 @@ export default async function Dashboard() {
     <>
       <PageHeader title={`${greeting}, ${currentUser.name}`} text={today} />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Properties on the website" value={String(published.length)} note="Published and visible to visitors" />
         <Stat label="New owner submissions" value={String(fresh)} note="Waiting for someone to open them" />
         <Stat label="Enquiries waiting for approval" value={String(waiting.length)} note="Clients waiting for a landlord's contact" />
@@ -40,7 +40,7 @@ export default async function Dashboard() {
         />
       </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-[1.6fr_1fr]">
+      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <Card>
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-bold">Website visits, last 14 days</h2>
@@ -61,7 +61,7 @@ export default async function Dashboard() {
         </Card>
       </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-bold">Latest owner submissions</h2>
@@ -89,7 +89,7 @@ export default async function Dashboard() {
           <h2 className="text-lg font-bold">Properties by category</h2>
           <RankBars data={["Rent", "Buy", "Invest"].map((c) => [c, published.filter((l) => l.category === c).length])} />
           <h2 className="mt-8 text-lg font-bold">Recent activity</h2>
-          <ul className="mt-3 grid gap-3 text-sm">
+          <ul className="mt-3 grid grid-cols-1 gap-3 text-sm">
             {activity.length === 0 && <li className="text-muted">Nothing yet.</li>}
             {activity.map((a, i) => (
               <li key={i}>

@@ -85,15 +85,15 @@ export function ContentForm({
     <>
       <PageHeader title="Website content" text="Change the words, the photo, the company name and the fees shown on the public website." />
 
-      <form onSubmit={saveWording} className="grid gap-4">
+      <form onSubmit={saveWording} className="grid grid-cols-1 gap-4">
         {sections.map(([title, text]) => (
           <Card key={title}>
-            <div className="grid gap-6 lg:grid-cols-[16rem_1fr]">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
               <div>
                 <h2 className="text-lg font-bold">{title}</h2>
                 <p className="mt-1 text-sm text-muted">{text}</p>
               </div>
-              <div className="grid gap-5">
+              <div className="grid grid-cols-1 gap-5">
                 {title === "Top of the page" && (
                   <div>
                     <p className="text-sm font-semibold">Photo</p>
@@ -132,7 +132,7 @@ export function ContentForm({
       </form>
 
       <Card className="mt-8">
-        <div className="grid gap-6 lg:grid-cols-[16rem_1fr]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
           <div>
             <h2 className="text-lg font-bold">Fees</h2>
             <p className="mt-1 text-sm text-muted">
@@ -143,7 +143,7 @@ export function ContentForm({
             </p>
           </div>
           {canEditFees ? (
-            <form onSubmit={saveFeesForm} className="grid gap-5 sm:grid-cols-2">
+            <form onSubmit={saveFeesForm} className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <Field label="Property listing fee, paid by the owner when listing (naira)" name="f-listing" required>
                 <input id="f-listing" name="listingFee" inputMode="numeric" defaultValue={pricing.listingFee} className={inputCls} />
               </Field>

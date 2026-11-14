@@ -18,7 +18,7 @@ export default async function Track({ params }: { params: Promise<{ token: strin
   ]);
   const progress = (found.data ?? null) as EnquiryProgress | null;
   return (
-    <main className="grid min-h-svh place-items-center bg-panel px-5 py-12 text-ink">
+    <main className="grid grid-cols-1 min-h-svh place-items-center bg-panel px-5 py-12 text-ink">
       <div className="w-full max-w-xl">
         <Logo name={site.name} href="/" />
         <div className="mt-8 rounded-3xl border border-line bg-surface p-6 sm:p-10">

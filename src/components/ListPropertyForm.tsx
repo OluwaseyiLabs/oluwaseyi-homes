@@ -283,7 +283,7 @@ export function ListPropertyForm({ detailFields, facilities }: { detailFields: D
         </p>
       </div>
 
-      <div className="mt-8 grid gap-5 sm:grid-cols-2">
+      <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2">
         <Field label="Your name" name="list-fullName" error={errors.fullName} required>
           <input {...props("fullName")} autoComplete="name" />
         </Field>
@@ -410,7 +410,7 @@ export function ListPropertyForm({ detailFields, facilities }: { detailFields: D
             {photos.length < MAX_IMAGES && (
               <label
                 htmlFor="list-images"
-                className="grid aspect-square cursor-pointer place-items-center rounded-xl border-2 border-dashed border-ink/25 text-center text-sm font-semibold text-muted transition hover:border-green hover:text-green has-[:focus-visible]:border-green has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-green/20"
+                className="grid grid-cols-1 aspect-square cursor-pointer place-items-center rounded-xl border-2 border-dashed border-ink/25 text-center text-sm font-semibold text-muted transition hover:border-green hover:text-green has-[:focus-visible]:border-green has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-green/20"
               >
                 {busy ? "Adding…" : "+ Add photos"}
                 <input
@@ -445,7 +445,7 @@ export function ListPropertyForm({ detailFields, facilities }: { detailFields: D
 
       <section aria-labelledby="list-fees" className="mt-8 rounded-2xl border border-line bg-panel p-5 sm:p-6">
         <h4 id="list-fees" className="text-lg font-bold">Property Listing and Agency Agreement</h4>
-        <ul className="mt-4 grid gap-5 sm:grid-cols-2">
+        <ul className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
           {ownerFees(pricing, data.purpose).map((f) => (
             <li key={f.id} className="text-sm">
               <p className="font-semibold">{f.name}</p>
@@ -468,7 +468,7 @@ export function ListPropertyForm({ detailFields, facilities }: { detailFields: D
             ? "These are two separate charges. Only the listing fee is paid today."
             : "These are two separate charges. Only the listing fee is paid today. The tenant is not charged the agency fee."}
         </p>
-        <ul className="mt-4 grid list-disc gap-2 pl-5 text-sm text-muted">
+        <ul className="mt-4 grid grid-cols-1 list-disc gap-2 pl-5 text-sm text-muted">
           {agreementTerms(pricing).map((t) => (
             <li key={t}>{t}</li>
           ))}

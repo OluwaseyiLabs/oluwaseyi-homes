@@ -147,7 +147,7 @@ export function HeroImage({ slides }: { slides: HeroSlide[] }) {
                 aria-label={`Show photo ${i + 1} of ${n}`}
                 aria-current={i === index}
                 onClick={() => go(i)}
-                className="grid h-6 place-items-center px-1"
+                className="grid grid-cols-1 h-6 place-items-center px-1"
               >
                 <span className={`block h-1.5 rounded-full bg-white transition-all duration-300 ${i === index ? "w-6 opacity-100" : "w-1.5 opacity-55"}`} />
               </button>

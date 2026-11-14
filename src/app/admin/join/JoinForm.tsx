@@ -12,7 +12,7 @@ export function JoinForm({ name, tokenHash, type }: { name: string; tokenHash: s
   const [again, setAgain] = useState("");
   const [mistake, setMistake] = useState("");
   return (
-    <main className="grid min-h-svh place-items-center bg-panel px-5 py-12 text-ink">
+    <main className="grid grid-cols-1 min-h-svh place-items-center bg-panel px-5 py-12 text-ink">
       <div className="w-full max-w-md">
         <Logo name={name} />
         <form
@@ -23,7 +23,7 @@ export function JoinForm({ name, tokenHash, type }: { name: string; tokenHash: s
             setMistake(problem);
             if (problem) e.preventDefault();
           }}
-          className="mt-8 grid gap-5 rounded-3xl border border-line bg-surface p-6 sm:p-8"
+          className="mt-8 grid grid-cols-1 gap-5 rounded-3xl border border-line bg-surface p-6 sm:p-8"
         >
           <input type="hidden" name="token_hash" value={tokenHash} />
           <input type="hidden" name="type" value={type} />

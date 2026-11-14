@@ -44,7 +44,7 @@ export function Properties({ listings, detailFields, facilities }: { listings: L
         <h2 className="text-3xl font-extrabold tracking-[-0.03em] sm:text-5xl">
           {content.propertiesHeading}
         </h2>
-        <div role="tablist" aria-label="Property category" className="flex gap-1 sm:gap-1.5">
+        <div role="tablist" aria-label="Property category" className="flex max-w-full gap-1 overflow-x-auto overscroll-x-contain sm:gap-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map((t) => (
             <button
               key={t}
@@ -58,7 +58,7 @@ export function Properties({ listings, detailFields, facilities }: { listings: L
                 // Prices and bedrooms mean different things on each tab, so each tab starts with no filters.
                 setFilters(noFilters);
               }}
-              className={`min-h-11 whitespace-nowrap rounded-full px-3.5 text-sm font-semibold transition active:scale-[0.97] sm:px-5 ${
+              className={`min-h-11 shrink-0 whitespace-nowrap rounded-full px-2.5 text-sm font-semibold transition active:scale-[0.97] min-[360px]:px-3.5 sm:px-5 ${
                 t === active ? "bg-ink text-ground" : "text-muted hover:text-ink"
               }`}
             >
@@ -77,7 +77,7 @@ export function Properties({ listings, detailFields, facilities }: { listings: L
         id="listing-panel"
         role="tabpanel"
         aria-labelledby={`tab-${active}`}
-        className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+        className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
       >
         {shown.map((l, i) => (
           <ListingCard key={l.id} listing={l} index={i} onOpen={setOpen} />

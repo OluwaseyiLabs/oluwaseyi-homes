@@ -56,7 +56,7 @@ export function TeamManager({ members, roles, meId }: { members: TeamMember[]; r
           {note.text}
         </p>
       )}
-      <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <Card className="overflow-x-auto p-0 sm:p-0">
           <table className="w-full min-w-[40rem] text-left text-sm">
             <thead className="text-xs text-muted">
@@ -121,7 +121,7 @@ export function TeamManager({ members, roles, meId }: { members: TeamMember[]; r
         <Card>
           <h2 className="text-lg font-bold">Invite a team member</h2>
           <p className="mt-1 text-sm text-muted">They get an email with a link to choose a password.</p>
-          <form onSubmit={sendInvite} noValidate className="mt-4 grid gap-4">
+          <form onSubmit={sendInvite} noValidate className="mt-4 grid grid-cols-1 gap-4">
             <Field label="Name" name="invite-name" required>
               <input id="invite-name" value={invite.name} onChange={(e) => setInvite((i) => ({ ...i, name: e.target.value }))} autoComplete="off" className={inputCls} />
             </Field>

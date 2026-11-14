@@ -8,7 +8,7 @@ export async function About() {
         <h2 className="text-3xl font-extrabold leading-tight tracking-[-0.03em] sm:text-5xl">
           {content.howHeading}
         </h2>
-        <ol className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">
+        <ol className="mt-12 grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-8">
           {content.steps.map((s, i) => (
             <li key={s.title} className="border-t border-white/20 pt-6">
               <span className="text-sm font-bold text-gold">Step {i + 1}</span>

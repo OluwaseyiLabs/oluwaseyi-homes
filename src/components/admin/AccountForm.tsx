@@ -35,9 +35,9 @@ export function AccountForm({ name, email, role }: { name: string; email: string
   };
 
   return (
-    <div className="grid max-w-xl gap-4">
+    <div className="grid grid-cols-1 max-w-xl gap-4">
     <Card>
-      <form onSubmit={save} noValidate className="grid gap-4">
+      <form onSubmit={save} noValidate className="grid grid-cols-1 gap-4">
         <Field label="Display name" name="account-name" required>
           <input id="account-name" value={value} onChange={(e) => setValue(e.target.value)} autoComplete="name" maxLength={80} className={inputCls} />
         </Field>
@@ -55,7 +55,7 @@ export function AccountForm({ name, email, role }: { name: string; email: string
     <Card>
       <h2 className="text-lg font-bold">Change password</h2>
       <p className="mt-1 text-sm text-muted">After the change you are signed out on every device, this one included, and sign in again with the new password.</p>
-      <form onSubmit={changePassword} noValidate className="mt-4 grid gap-4">
+      <form onSubmit={changePassword} noValidate className="mt-4 grid grid-cols-1 gap-4">
         <Field label="Current password" name="pw-current" required>
           <input id="pw-current" type="password" autoComplete="current-password" value={pw.current} onChange={(e) => setPw((p) => ({ ...p, current: e.target.value }))} className={inputCls} />
         </Field>

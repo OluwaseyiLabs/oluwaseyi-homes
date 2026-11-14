@@ -44,7 +44,7 @@ export function TrafficView({ data, names }: { data: Record<number, Traffic>; na
           </div>
         }
       />
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Stat
           label={`Visits, ${period}`}
           value={t.visits.toLocaleString("en-GB")}
@@ -61,7 +61,7 @@ export function TrafficView({ data, names }: { data: Record<number, Traffic>; na
           <BarChart key={range} data={t.days.map((d) => [dayLabel.format(new Date(`${d.day}T00:00:00Z`)), d.visits])} unit="visits" />
         )}
       </Card>
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <h2 className="text-lg font-bold">Where visitors come from</h2>
           <p className="mt-1 text-sm text-muted">The site or app they were on when they tapped your link. Add ?utm_source=instagram to a link to name its source.</p>

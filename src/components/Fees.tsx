@@ -12,12 +12,12 @@ export async function Fees() {
           Searching, viewing prices and contacting owners is free. These are the only fees we charge. Rent,
           purchase price and the property’s own charges are shown on each property.
         </p>
-        <ul className="mt-12 grid gap-5 md:grid-cols-2">
+        <ul className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2">
           {fees.map((f) => (
             <li key={f.id} className="rounded-3xl border border-line bg-surface p-6 sm:p-8">
               <h3 className="text-xl font-bold tracking-tight">{f.name}</h3>
               <p className="mt-2 text-3xl font-extrabold tracking-tight text-green">{f.amount}</p>
-              <dl className="mt-5 grid gap-4 text-sm">
+              <dl className="mt-5 grid grid-cols-1 gap-4 text-sm">
                 <div>
                   <dt className="font-semibold">Who pays</dt>
                   <dd className="mt-0.5 text-muted">{f.payer}</dd>

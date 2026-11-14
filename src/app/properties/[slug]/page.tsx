@@ -61,7 +61,7 @@ export default async function PropertyPage({ params }: Props) {
         <Link href="/#properties" className="inline-flex min-h-11 items-center text-sm font-semibold text-green underline underline-offset-4">
           ← All properties
         </Link>
-        <article className="mt-4 grid overflow-hidden rounded-3xl border border-line bg-ground lg:grid-cols-[1.3fr_1fr]">
+        <article className="mt-4 grid grid-cols-1 overflow-hidden rounded-3xl border border-line bg-ground lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
           <div className="lg:sticky lg:top-20 lg:self-start">
             <ListingGallery listing={listing} />
           </div>

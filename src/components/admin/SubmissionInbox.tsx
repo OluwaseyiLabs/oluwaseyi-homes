@@ -72,7 +72,7 @@ export function SubmissionInbox({
   return (
     <>
       <PageHeader title="Submissions" text="Properties that owners sent in through the List Property form." />
-      <div className="grid items-start gap-4 lg:grid-cols-[22rem_1fr]">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <Card className="p-2 sm:p-2">
           <ul>
             {submissions.map((s) => (
@@ -120,7 +120,7 @@ export function SubmissionInbox({
 
           {open.description && <p className="mt-6 leading-relaxed">{open.description}</p>}
 
-          <dl className="mt-6 grid gap-4 border-t border-line pt-6 text-sm sm:grid-cols-2 xl:grid-cols-4">
+          <dl className="mt-6 grid grid-cols-1 gap-4 border-t border-line pt-6 text-sm sm:grid-cols-2 xl:grid-cols-4">
             <div><dt className="text-muted">Relationship to property</dt><dd className="mt-1 font-semibold">{open.relationship}</dd></div>
             <div><dt className="text-muted">Owner ({open.owner.code})</dt><dd className="mt-1 font-semibold">{open.owner.name}</dd></div>
             <div><dt className="text-muted">WhatsApp</dt><dd className="mt-1 font-semibold">{open.owner.phone}</dd></div>
@@ -129,7 +129,7 @@ export function SubmissionInbox({
 
           <section className="mt-6 border-t border-line pt-6">
             <h3 className="text-lg font-bold">Agreement and fees the owner accepted</h3>
-            <dl className="mt-3 grid gap-4 text-sm sm:grid-cols-2">
+            <dl className="mt-3 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
               <div>
                 <dt className="text-muted">Property listing fee</dt>
                 <dd className="mt-1 break-words font-semibold">{naira(open.agreement.listingFee)} <span className="font-normal text-green">· Paid, reference {open.agreement.paymentRef}</span></dd>
@@ -147,7 +147,7 @@ export function SubmissionInbox({
           {open.costs && <CostBreakdown costs={open.costs} note="As entered by the landlord. Check the figures before you publish." />}
 
           {(facts.length > 0 || open.video) && (
-            <dl className="mt-6 grid gap-4 border-t border-line pt-6 text-sm sm:grid-cols-2">
+            <dl className="mt-6 grid grid-cols-1 gap-4 border-t border-line pt-6 text-sm sm:grid-cols-2">
               {facts.map(([label, value]) => (
                 <div key={label}>
                   <dt className="text-muted">{label}</dt>
@@ -166,7 +166,7 @@ export function SubmissionInbox({
           )}
 
           {answered.length > 0 && (
-            <dl className="mt-6 grid gap-4 border-t border-line pt-6 text-sm sm:grid-cols-2 xl:grid-cols-4">
+            <dl className="mt-6 grid grid-cols-1 gap-4 border-t border-line pt-6 text-sm sm:grid-cols-2 xl:grid-cols-4">
               {answered.map((f) => (
                 <div key={f.id}>
                   <dt className="text-muted">{f.label}</dt>

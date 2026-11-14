@@ -53,7 +53,7 @@ export function DetailFields({
       <p className="mt-1 text-sm text-muted">
         Fill in what applies to this property. Anything left empty is not shown on the website.
       </p>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {fields.map((f) => (
           <div key={f.id}>
             <div className="flex items-center justify-between gap-2">
@@ -81,7 +81,7 @@ export function DetailFields({
 
       <fieldset className="mt-6 rounded-2xl border border-line bg-panel p-4">
         <legend className="px-1 text-sm font-semibold">Create a new detail</legend>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="new-detail-title" className="text-sm font-semibold">Title</label>
             <input

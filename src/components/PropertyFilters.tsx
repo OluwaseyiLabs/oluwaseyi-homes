@@ -30,7 +30,7 @@ export function PropertyFilters({
 
   return (
     <div className="mt-8 rounded-3xl border border-line bg-surface p-4 sm:p-5" role="search" aria-label="Search properties">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr]">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <label className="text-xs font-semibold text-muted sm:col-span-2 lg:col-span-1">
           Search
           <input id="f-q" type="search" value={value.q} onChange={(e) => set("q", e.target.value)} placeholder="Area, street or keyword" className={box} />
@@ -59,7 +59,7 @@ export function PropertyFilters({
         </label>
       </div>
 
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_2fr]">
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)]">
         <label className="text-xs font-semibold text-muted">
           {rent ? "Lowest rent a year (₦)" : "Lowest price (₦)"}
           <input id="f-min" inputMode="numeric" value={money(value.min)} onChange={(e) => set("min", e.target.value.replace(/\D/g, ""))} placeholder="No minimum" className={box} />

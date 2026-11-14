@@ -117,7 +117,7 @@ export function LeadManager({
       />
 
       <Card>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="text-xs font-semibold text-muted">Customer or Lead ID
             <input value={f.customer} onChange={set("customer")} placeholder="Name, email, phone or ID" className={filterCls} />
           </label>
@@ -224,10 +224,10 @@ export function LeadManager({
           </p>
         )}
 
-        <div className="mt-6 grid gap-8 border-t border-line pt-6 lg:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-8 border-t border-line pt-6 lg:grid-cols-2">
           <section>
             <h3 className="text-lg font-bold">Customer</h3>
-            <dl className="mt-3 grid gap-4 text-sm sm:grid-cols-2">
+            <dl className="mt-3 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
               <div><dt className="text-muted">Email</dt><dd className="mt-1 break-words font-semibold">{open.customer.email} <span className={open.customer.emailVerified ? "font-normal text-green" : "font-normal text-red-700"}>({open.customer.emailVerified ? "verified" : "not verified"})</span></dd></div>
               <div><dt className="text-muted">Phone</dt><dd className="mt-1 font-semibold">{open.customer.phone}</dd></div>
               <div><dt className="text-muted">Looking for</dt><dd className="mt-1 font-semibold">{[open.propertyType, open.location].filter(Boolean).join(" in ")}</dd></div>
@@ -253,7 +253,7 @@ export function LeadManager({
           <section>
             <h3 className="text-lg font-bold">Property and owner</h3>
             {open.listing ? (
-              <dl className="mt-3 grid gap-4 text-sm sm:grid-cols-2">
+              <dl className="mt-3 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
                 <div className="sm:col-span-2"><dt className="text-muted">Property ({open.listing.code})</dt><dd className="mt-1 font-semibold">{open.listing.title}, {open.listing.location}</dd></div>
                 {open.owner && (
                   <>
@@ -288,7 +288,7 @@ export function LeadManager({
               </label>
             )}
             {open.agreement && (
-              <dl className="mt-5 grid gap-4 border-t border-line pt-5 text-sm sm:grid-cols-2">
+              <dl className="mt-5 grid grid-cols-1 gap-4 border-t border-line pt-5 text-sm sm:grid-cols-2">
                 <div><dt className="text-muted">Agreement accepted</dt><dd className="mt-1 font-semibold">{when(open.agreement.acceptedAt)} (version {open.agreement.version})</dd></div>
                 {open.agreement.listingFee !== undefined && <div><dt className="text-muted">Listing fee</dt><dd className="mt-1 font-semibold">{open.agreement.listingFee > 0 ? `${naira(open.agreement.listingFee)}, paid on listing` : "Waived"}</dd></div>}
                 <div><dt className="text-muted">Agreed fee</dt><dd className="mt-1 font-semibold">{feeTerms(open)}, paid by the {payer(open)}</dd></div>
@@ -318,7 +318,7 @@ export function LeadManager({
               {missing.length > 0 ? (
                 <>
                   <p className="mt-2 text-sm font-semibold">Contact details cannot be released yet:</p>
-                  <ul id="lead-missing" className="mt-2 grid list-disc gap-1 pl-5 text-sm text-red-700">
+                  <ul id="lead-missing" className="mt-2 grid grid-cols-1 list-disc gap-1 pl-5 text-sm text-red-700">
                     {missing.map((m) => <li key={m}>{m}</li>)}
                   </ul>
                 </>
@@ -359,7 +359,7 @@ export function LeadManager({
         {released && (
           <section className="mt-6 border-t border-line pt-6">
             <h3 className="text-lg font-bold">Transaction</h3>
-            <div className="mt-3 grid gap-6 lg:grid-cols-2">
+            <div className="mt-3 grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div>
                 <label className="block max-w-sm text-sm font-semibold">
                   Status
@@ -410,7 +410,7 @@ export function LeadManager({
               <div>
                 {open.completion ? (
                   <>
-                    <dl className="grid gap-4 text-sm sm:grid-cols-2">
+                    <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
                       <div><dt className="text-muted">Completion date</dt><dd className="mt-1 font-semibold">{open.completion.date}</dd></div>
                       <div><dt className="text-muted">Final agreed {open.kind === "Rent" ? "rent" : "price"}</dt><dd className="mt-1 font-semibold">{naira(open.completion.price)}</dd></div>
                       <div className="sm:col-span-2"><dt className="text-muted">Supporting evidence</dt><dd className="mt-1 font-semibold">{open.completion.evidence || "None given"}</dd></div>
@@ -456,7 +456,7 @@ export function LeadManager({
                   </>
                 ) : closed(open) || !can.change ? null : (
                   <form
-                    className="grid gap-4 sm:grid-cols-2"
+                    className="grid grid-cols-1 gap-4 sm:grid-cols-2"
                     onSubmit={(e) => {
                       e.preventDefault();
                       run(() => reportCompletion(open.dbId, report.date, report.price, report.evidence), () => setReport({ date: "", price: "", evidence: "" }));
@@ -485,9 +485,9 @@ export function LeadManager({
         <section className="mt-6 border-t border-line pt-6">
           <h3 className="text-lg font-bold">History</h3>
           <p className="mt-1 text-sm text-muted">Every action is recorded with its time and who did it. Entries cannot be edited or deleted.</p>
-          <ol id="lead-history" className="mt-4 grid gap-3 text-sm">
+          <ol id="lead-history" className="mt-4 grid grid-cols-1 gap-3 text-sm">
             {open.history.map((a, i) => (
-              <li key={i} className="grid gap-x-4 sm:grid-cols-[11rem_8rem_1fr]">
+              <li key={i} className="grid grid-cols-1 gap-x-4 sm:grid-cols-[11rem_8rem_minmax(0,1fr)]">
                 <span className="text-muted tabular-nums">{when(a.at)}</span>
                 <span className="font-semibold">{a.by}</span>
                 <span>{a.what}</span>

@@ -66,7 +66,7 @@ function Bell({ waiting, unread }: { waiting: Waiting[]; unread: Unread[] }) {
       >
         <Icon name="bell" />
         {alerts > 0 && (
-          <span className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-gold px-1 text-xs font-bold text-coal">
+          <span className="absolute -right-1 -top-1 grid grid-cols-1 min-w-5 place-items-center rounded-full bg-gold px-1 text-xs font-bold text-coal">
             {alerts}
           </span>
         )}
@@ -136,7 +136,7 @@ export function Shell({
   const [menu, setMenu] = useState(false);
 
   return (
-    <div className="min-h-svh bg-panel text-ink lg:grid lg:grid-cols-[16.5rem_1fr]">
+    <div className="min-h-svh bg-panel text-ink lg:grid lg:grid-cols-[16.5rem_minmax(0,1fr)]">
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex w-[16.5rem] flex-col border-r border-line bg-surface p-4 transition-transform duration-300 lg:sticky lg:top-0 lg:h-svh lg:translate-x-0 ${
           menu ? "translate-x-0" : "-translate-x-full"
@@ -144,7 +144,7 @@ export function Shell({
       >
         <p className="px-3 py-3 text-[15px] font-extrabold leading-tight tracking-[-0.03em]">{company}.</p>
         <p className="px-3 text-xs font-medium text-muted">Admin</p>
-        <nav aria-label="Admin" className="mt-5 grid gap-1">
+        <nav aria-label="Admin" className="mt-5 grid grid-cols-1 gap-1">
           {nav.filter((n) => user.permissions.includes(n.needs)).map((n) => {
             const active = n.href === "/admin" ? path === "/admin" : path.startsWith(n.href);
             return (
@@ -160,7 +160,7 @@ export function Shell({
                 <Icon name={n.icon} />
                 {n.label}
                 {badges[n.href] ? (
-                  <span className="ml-auto grid min-w-5 place-items-center rounded-full bg-gold px-1 text-xs font-bold text-coal">
+                  <span className="ml-auto grid grid-cols-1 min-w-5 place-items-center rounded-full bg-gold px-1 text-xs font-bold text-coal">
                     {badges[n.href]}
                   </span>
                 ) : null}

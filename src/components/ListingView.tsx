@@ -19,7 +19,7 @@ export function ListingGallery({ listing }: { listing: Listing }) {
   const step = (d: number) => setIdx((i) => (i + d + n) % n);
 
   return (
-    <div className="p-3 sm:p-4">
+    <div className="min-w-0 p-3 sm:p-4">
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-green/10">
         {listing.images.map((src, i) => (
           <Image
@@ -39,7 +39,7 @@ export function ListingGallery({ listing }: { listing: Listing }) {
           </>
         )}
       </div>
-      <div className="mt-3 flex gap-2 overflow-x-auto">
+      <div className="mt-3 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1">
         {listing.images.map((src, i) => (
           <button
             key={src}
@@ -113,7 +113,7 @@ export function ListingInfo({ listing, detailFields, children, heading = "h2" }:
               </ul>
             </>
           ) : null}
-          <dl className="mt-5 grid gap-4 text-sm">
+          <dl className="mt-5 grid grid-cols-1 gap-4 text-sm">
             {facts.map(([label, value]) => (
               <div key={label}>
                 <dt className="text-muted">{label}</dt>
@@ -207,7 +207,7 @@ export function PageActions({ listing }: { listing: Listing }) {
   const chat = useChatLink(listing);
   return (
     <>
-      <div className="mt-8 grid gap-3">
+      <div className="mt-8 grid grid-cols-1 gap-3">
         <a
           href={`/?enquire=${encodeURIComponent(listing.id)}#enquiry-form`}
           data-track="enquire_property"

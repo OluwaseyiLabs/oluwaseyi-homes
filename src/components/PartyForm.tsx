@@ -110,11 +110,11 @@ export function PartyForm({
       <p className="mt-3 text-lg text-muted">
         About <strong className="text-ink">{property}</strong>, reference {leadCode}.
       </p>
-      <div className="mt-6 grid gap-6">
+      <div className="mt-6 grid grid-cols-1 gap-6">
         <YesNo legend="Did the inspection take place?" name="inspected" value={inspected} onChange={setInspected} />
         <YesNo legend={`Has the ${deal} been completed?`} name="completed" value={completed} onChange={setCompleted} />
         {reporting && (
-          <div className="grid gap-5 rounded-2xl border border-line bg-panel p-5 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 rounded-2xl border border-line bg-panel p-5 sm:grid-cols-2">
             <p className="text-sm text-muted sm:col-span-2">
               Tell us when it was completed and the final amount agreed. We check this before any fee is invoiced.
             </p>
