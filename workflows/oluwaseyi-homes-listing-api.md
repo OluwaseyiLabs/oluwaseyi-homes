@@ -40,10 +40,16 @@ agreementVersion, feeDue; numbers above zero for askingAmount, listingFee, feePc
 | Supabase unreachable | 500 | "We could not save your property just now. Your payment is recorded…" |
 
 ## Flow
-Webhook → Check submission → Valid submission? → Store submission (Supabase function) → Stored? → Respond 200 → Email team.
+Webhook → Check submission → Valid submission? → Store submission (Supabase function) → Stored? → Respond 200 → Email team **and** Save listing to sheet (in parallel).
 Invalid → Respond 400. Function says no → Respond 409. Supabase call fails → Respond 500.
 The team email says only "new property submission, check the dashboard" with the reference: no personal details. It is sent after the response, so an email problem never changes what the owner sees.
 
+## The List Property sheet
+After the owner is answered, **Save listing to sheet** adds one row to the *List Property* tab of the lead spreadsheet, so there is a record outside the website if it is ever down. Only the essentials are saved; everything else is in the dashboard (the row has a link to it). No photos.
+Row 1 of the tab must hold these headings, spelled exactly: `Timestamp`, `Reference`, `Category` (List property to rent / List property to sell), `Name` (title and name), `WhatsApp number`, `Email`, `Relationship`, `Property type`, `Address`, `Area`, `Bedrooms`, `Rent or price`, `Listing fee`, `Listing fee paid`, `Payment reference`, `Agreement accepted`, `Dashboard link`.
+It is written as plain text (cell format RAW): phone numbers keep their leading zero and nothing a visitor types can become a spreadsheet formula. A sheet problem never affects the owner's confirmation or the team email.
+Only owner submissions are saved here. Properties the team adds itself in the dashboard are not.
+
 ## Config
-Team email and dashboard link are in the `CONFIG` object at the top of the "Check submission" Code node.
+Team email, dashboard link, the spreadsheet ID and the List Property tab's `gid` are in the `CONFIG` object at the top of the "Check submission" Code node.
 The Supabase project URL is in the "Store submission" node (the saved JSON has a placeholder instead).

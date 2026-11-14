@@ -588,7 +588,7 @@
         1000
       ],
       "parameters": {
-        "jsCode": "// Why Code: checks a dozen required fields of different kinds in one place and returns one clear message.\nconst CONFIG = { teamEmail: 'team@your-domain.example', dashboard: 'https://your-domain.example/admin/submissions' };\nconst p = $json.body && typeof $json.body === 'object' ? $json.body : {};\nconst text = k => typeof p[k] === 'string' && p[k].trim() !== '';\nconst errors = [];\nif (!['Rent', 'Sell'].includes(p.purpose)) errors.push('purpose must be Rent or Sell');\nfor (const k of ['fullName', 'phone', 'propertyType', 'address', 'neighbourhood', 'relationship', 'paymentReference', 'agreementVersion', 'feeDue'])\n  if (!text(k)) errors.push(k + ' is required');\nif (!text('email') || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(p.email)) errors.push('email must be a valid email address');\nfor (const k of ['askingAmount', 'listingFee', 'feePct', 'protectionMonths'])\n  if (typeof p[k] !== 'number' || !(p[k] > 0)) errors.push(k + ' must be a number above zero');\nif (!Array.isArray(p.photos) || p.photos.length < 1 || p.photos.length > 8 || p.photos.some(x => typeof x !== 'string')) errors.push('photos must list 1 to 8 stored photos');\nif (errors.length) return { json: { valid: false, error: errors.join('; ') } };\nreturn { json: { valid: true, p, config: CONFIG } };"
+        "jsCode": "// Why Code: checks a dozen required fields of different kinds in one place and returns one clear message.\nconst CONFIG = { teamEmail: 'team@your-domain.example', dashboard: 'https://your-domain.example/admin/submissions', sheetId: 'YOUR_GOOGLE_SHEET_ID', listSheetGid: 'YOUR_LIST_PROPERTY_TAB_GID' };\nconst p = $json.body && typeof $json.body === 'object' ? $json.body : {};\nconst text = k => typeof p[k] === 'string' && p[k].trim() !== '';\nconst errors = [];\nif (!['Rent', 'Sell'].includes(p.purpose)) errors.push('purpose must be Rent or Sell');\nfor (const k of ['fullName', 'phone', 'propertyType', 'address', 'neighbourhood', 'relationship', 'paymentReference', 'agreementVersion', 'feeDue'])\n  if (!text(k)) errors.push(k + ' is required');\nif (!text('email') || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(p.email)) errors.push('email must be a valid email address');\nfor (const k of ['askingAmount', 'listingFee', 'feePct', 'protectionMonths'])\n  if (typeof p[k] !== 'number' || !(p[k] > 0)) errors.push(k + ' must be a number above zero');\nif (!Array.isArray(p.photos) || p.photos.length < 1 || p.photos.length > 8 || p.photos.some(x => typeof x !== 'string')) errors.push('photos must list 1 to 8 stored photos');\nif (errors.length) return { json: { valid: false, error: errors.join('; ') } };\nreturn { json: { valid: true, p, config: CONFIG } };"
       }
     },
     {
@@ -1068,6 +1068,217 @@
       "retryOnFail": true,
       "maxTries": 2,
       "waitBetweenTries": 3000
+    },
+    {
+      "id": "c1a7e0b4-3f52-4d8a-9e61-5b7d2f4a8c10",
+      "name": "Save listing to sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        304
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput",
+      "notes": "Adds one row to the List Property tab for every paid owner submission (rent or sale). Runs next to the team email, after the owner has been answered, so a sheet problem never delays anything. Written as plain text (RAW) so phone numbers keep their leading zero and nothing can become a formula.",
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Check submission').first().json.config.sheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('Check submission').first().json.config.listSheetGid }}",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.setZone('Africa/Lagos').toFormat('dd/MM/yyyy HH:mm:ss') }}",
+            "Reference": "={{ $('Store submission').first().json.code }}",
+            "Category": "={{ $('Check submission').first().json.p.purpose === 'Rent' ? 'List property to rent' : 'List property to sell' }}",
+            "Name": "={{ $('Check submission').first().json.p.fullName }}",
+            "WhatsApp number": "={{ $('Check submission').first().json.p.phone }}",
+            "Email": "={{ $('Check submission').first().json.p.email }}",
+            "Relationship": "={{ $('Check submission').first().json.p.relationship }}",
+            "Property type": "={{ $('Check submission').first().json.p.propertyType }}",
+            "Address": "={{ $('Check submission').first().json.p.address }}",
+            "Area": "={{ $('Check submission').first().json.p.neighbourhood }}",
+            "Bedrooms": "={{ $('Check submission').first().json.p.bedrooms || '' }}",
+            "Rent or price": "={{ '₦' + Number($('Check submission').first().json.p.askingAmount).toLocaleString('en-US') }}",
+            "Listing fee": "={{ '₦' + Number($('Check submission').first().json.p.listingFee).toLocaleString('en-US') }}",
+            "Listing fee paid": "Yes",
+            "Payment reference": "={{ $('Check submission').first().json.p.paymentReference }}",
+            "Agreement accepted": "={{ 'Yes (' + $('Check submission').first().json.p.agreementVersion + ')' }}",
+            "Dashboard link": "={{ $('Check submission').first().json.config.dashboard + '?id=' + $('Store submission').first().json.code }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reference",
+              "displayName": "Reference",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "WhatsApp number",
+              "displayName": "WhatsApp number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Relationship",
+              "displayName": "Relationship",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Property type",
+              "displayName": "Property type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Address",
+              "displayName": "Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Area",
+              "displayName": "Area",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Bedrooms",
+              "displayName": "Bedrooms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rent or price",
+              "displayName": "Rent or price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Listing fee",
+              "displayName": "Listing fee",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Listing fee paid",
+              "displayName": "Listing fee paid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Payment reference",
+              "displayName": "Payment reference",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Agreement accepted",
+              "displayName": "Agreement accepted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Dashboard link",
+              "displayName": "Dashboard link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      }
     }
   ],
   "connections": {
@@ -1483,6 +1694,11 @@
         [
           {
             "node": "Email team about listing",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Save listing to sheet",
             "type": "main",
             "index": 0
           }
