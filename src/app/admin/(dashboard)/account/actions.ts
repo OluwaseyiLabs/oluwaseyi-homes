@@ -7,7 +7,19 @@ import { requireUser } from "@/lib/auth";
 import { allow } from "@/lib/ratelimit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
-import { logError, withId } from "@/lib/errors";
+import { genericError, logError, withId } from "@/lib/errors";
+
+/**
+ * For the Owner only: makes the site log a harmless error and shows its ID, so the Owner can search for that ID in the
+ * host's logs and confirm that problems can be traced. Nothing is stored, sent or changed.
+ */
+export async function stageTestError(): Promise<{ error: string | null; message?: string }> {
+  const user = await requireUser();
+  if (user.role !== "Owner") return { error: "Only the Owner can do this." };
+  if (!(await allow(`test-error:${user.id}`, 10, 3600))) return { error: "That was done a few times already. Try again in an hour." };
+  const id = logError("admin.test-error", new Error("Test error staged on purpose by the Owner. Nothing is wrong."), { staged: true });
+  return { error: null, message: genericError(id) };
+}
 
 /** Sets the signed-in person's own display name. Nobody can use this to change anyone else's. */
 export async function setMyName(name: string): Promise<{ error: string | null }> {

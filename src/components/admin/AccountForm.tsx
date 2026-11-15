@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
-import { changeMyPassword, setMyName } from "@/app/admin/(dashboard)/account/actions";
+import { changeMyPassword, setMyName, stageTestError } from "@/app/admin/(dashboard)/account/actions";
 import { Field, inputCls } from "@/components/Field";
 import { Card, btnPrimary } from "./ui";
 
@@ -14,6 +14,7 @@ export function AccountForm({ name, email, role }: { name: string; email: string
 
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
   const [pwError, setPwError] = useState("");
+  const [drill, setDrill] = useState<{ ok: boolean; text: string } | null>(null);
 
   const changePassword = (e: FormEvent) => {
     e.preventDefault();
@@ -69,6 +70,30 @@ export function AccountForm({ name, email, role }: { name: string; email: string
         <button disabled={pending} className={btnPrimary}>{pending ? "Working…" : "Change password"}</button>
       </form>
     </Card>
+    {role === "Owner" && (
+      <Card>
+        <h2 className="text-lg font-bold">Check that errors can be traced</h2>
+        <p className="mt-1 text-sm text-muted">
+          This makes the site log a harmless test error and shows you its ID. Search that ID in Vercel, Logs: you should find one line saying it was staged on purpose. Nothing is saved or sent.
+        </p>
+        {drill && (
+          <p role={drill.ok ? "status" : "alert"} className={`mt-4 break-words rounded-xl p-4 text-sm font-medium ${drill.ok ? "bg-green/10 text-green" : "bg-red-50 text-red-700"}`}>
+            {drill.text}
+          </p>
+        )}
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => start(async () => {
+            const res = await stageTestError();
+            setDrill(res.error ? { ok: false, text: res.error } : { ok: true, text: res.message ?? "" });
+          })}
+          className={`${btnPrimary} mt-4`}
+        >
+          Send a test error
+        </button>
+      </Card>
+    )}
     </div>
   );
 }
