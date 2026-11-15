@@ -257,9 +257,9 @@ export async function checkRefund(id: string): Promise<Result> {
   const s = await load(id);
   if (!s) return { error: "That submission could not be found." };
   const admin = supabaseAdmin();
-  const { data: row } = await admin.from("refunds").select("id").eq("submission_id", id).eq("status", "Started").eq("method", "Paystack").maybeSingle();
+  const { data: row } = await admin.from("refunds").select("id, paystack_refund_id").eq("submission_id", id).eq("status", "Started").eq("method", "Paystack").maybeSingle();
   if (!row) return { error: "There is no started refund to check." };
-  const now = await refundStatus(s.paymentRef);
+  const now = await refundStatus(s.paymentRef, row.paystack_refund_id);
   if (!now.ok) return { error: now.message };
   if (now.state === "processed") {
     await admin.from("refunds").update({ status: "Refunded", completed_at: new Date().toISOString() }).eq("id", row.id);

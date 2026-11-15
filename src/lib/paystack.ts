@@ -99,21 +99,35 @@ export async function refundPayment(reference: string, naira: number, notes: { m
   }
 }
 
-/** Server-only: where the refund of one payment has got to, from Paystack's list of refunds for that payment. */
-export async function refundStatus(reference: string): Promise<{ ok: true; state: RefundState } | { ok: false; message: string }> {
+/**
+ * Server-only: where a refund has got to. Paystack's list does not filter by the payment's reference (it answers with
+ * an empty list), so the refund is fetched by its own ID when we have it, and otherwise found by reading Paystack's recent
+ * refunds and matching the payment's reference.
+ */
+export async function refundStatus(reference: string, refundId?: string | null): Promise<{ ok: true; state: RefundState } | { ok: false; message: string }> {
   const key = process.env.PAYSTACK_SECRET_KEY;
   if (!key) return { ok: false, message: "Paystack is not set up on this server." };
   if (!/^[\w.=-]{6,100}$/.test(reference)) return { ok: false, message: "That payment reference is not valid." };
+  const get = async (path: string) => {
+    const res = await fetch(`${paystackBase()}${path}`, { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(15_000), cache: "no-store" });
+    return { res, json: (await res.json().catch(() => null)) as { status?: boolean; message?: string; data?: unknown } | null };
+  };
   try {
-    const res = await fetch(`${paystackBase()}/refund?reference=${encodeURIComponent(reference)}`, {
-      headers: { Authorization: `Bearer ${key}` },
-      signal: AbortSignal.timeout(15_000),
-      cache: "no-store",
-    });
-    const json = (await res.json().catch(() => null)) as { status?: boolean; message?: string; data?: { status?: string }[] } | null;
-    if (!res.ok || !json?.status) return { ok: false, message: json?.message || `Paystack answered ${res.status}.` };
-    const latest = json.data?.[0];
-    return latest?.status ? { ok: true, state: latest.status as RefundState } : { ok: false, message: "Paystack has no refund for this payment yet." };
+    if (refundId && /^\d{1,20}$/.test(refundId)) {
+      const { res, json } = await get(`/refund/${refundId}`);
+      const d = json?.data as { status?: string } | undefined;
+      if (res.ok && json?.status && d?.status) return { ok: true, state: d.status as RefundState };
+    }
+    // Newest first. Three pages of 100 covers far more refunds than this business will have in flight.
+    for (let page = 1; page <= 3; page++) {
+      const { res, json } = await get(`/refund?perPage=100&page=${page}`);
+      if (!res.ok || !json?.status) return { ok: false, message: json?.message || `Paystack answered ${res.status}.` };
+      const list = (Array.isArray(json.data) ? json.data : []) as { status?: string; transaction_reference?: string }[];
+      const mine = list.find((r) => r.transaction_reference === reference);
+      if (mine?.status) return { ok: true, state: mine.status as RefundState };
+      if (list.length < 100) break;
+    }
+    return { ok: false, message: "Paystack has no refund for this payment yet." };
   } catch {
     return { ok: false, message: "Paystack could not be reached just now." };
   }
