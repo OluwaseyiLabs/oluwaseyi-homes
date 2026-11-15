@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { LEAD_STATUSES, confirmedText, inspectionText, type LeadStatus } from "@/lib/leads";
 import { sendContactRelease, sendEmail, sendFollowUp, type ContactRelease, type Email } from "@/lib/n8n";
 import { partyLink, partyToken, siteUrl } from "@/lib/party";
-import { startPayment, verifyPayment } from "@/lib/paystack";
+import { findPaidByPrefix, startPayment, verifyPayment } from "@/lib/paystack";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
 import { naira, parseNaira } from "@/lib/validation";
@@ -70,8 +70,25 @@ export async function releaseContact(id: string): Promise<Result> {
   const { data, error } = await supabaseAdmin().rpc("release_contact", { p_lead: id, p_actor: user.name });
   if (error || !data) return { error: error?.code === "P0001" ? error.message : withId("leads", error, "The contact could not be released. Please try again.") };
   revalidatePath("/admin", "layout");
-  const rel = data as ContactRelease & { inspectionDate?: string; inspectionSlot?: string };
-  return emailContact(id, user.name, { ...rel, inspection: inspectionText(rel.inspectionDate, rel.inspectionSlot) }, false);
+  const rel = data as ContactRelease & { inspectionDate?: string; inspectionSlot?: string; inspectionConfirmedFor?: string };
+  const confirmed = rel.inspectionConfirmedFor ? confirmedText(rel.inspectionConfirmedFor) : undefined;
+  const customerEmailed = await emailContact(id, user.name, { ...rel, inspection: inspectionText(rel.inspectionDate, rel.inspectionSlot), inspectionConfirmed: confirmed }, false);
+  // The owner is told in the same step that the time they agreed is now approved, so nobody has to chase it.
+  if (confirmed) {
+    const sent = await sendEmail({
+      to: rel.ownerEmail,
+      subject: `Inspection approved: ${rel.property}`,
+      heading: "Your inspection time is approved",
+      paragraphs: [
+        `Hello ${rel.ownerName}, the inspection time for ${rel.property} is approved between you and ${rel.customerName}: ${confirmed} (Lagos time).`,
+        "We have sent the customer your contact details and this time. Please make sure someone is there to show the property.",
+      ],
+      rows: [["Property", rel.property], ["Customer", rel.customerName], ["When", `${confirmed} (Lagos time)`], ["Reference", rel.leadCode]],
+    });
+    await note(id, sent.body.success ? user.name : "System", sent.body.success ? "Approved inspection time emailed to the owner" : "Approved inspection time could not be emailed to the owner", confirmed);
+    if (!sent.body.success && !customerEmailed.error) return { error: "The contact is released and the customer was emailed, but the email to the owner could not be sent. Tell the owner the inspection time yourself." };
+  }
+  return customerEmailed;
 }
 
 export async function resendContact(id: string): Promise<Result> {
@@ -79,7 +96,7 @@ export async function resendContact(id: string): Promise<Result> {
   if (!isId(id)) return { error: "That lead could not be found." };
   const { data: l } = await supabaseAdmin()
     .from("leads")
-    .select("code, customer_name, customer_email, released_at, inspection_date, inspection_slot, owner:owners(name, whatsapp, email), listing:listings(title, location)")
+    .select("code, customer_name, customer_email, released_at, inspection_date, inspection_slot, inspection_confirmed_for, owner:owners(name, whatsapp, email), listing:listings(title, location)")
     .eq("id", id)
     .single();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- joined rows
@@ -90,6 +107,7 @@ export async function resendContact(id: string): Promise<Result> {
     ownerName: owner.name, ownerWhatsapp: owner.whatsapp, ownerEmail: owner.email,
     property: `${listing.title}, ${listing.location}`,
     inspection: inspectionText(l.inspection_date, l.inspection_slot),
+    inspectionConfirmed: l.inspection_confirmed_for ? confirmedText(l.inspection_confirmed_for) : undefined,
     trackToken: (await partyToken(id, "customer", "track", 90)) ?? undefined,
   }, true);
 }
@@ -142,7 +160,8 @@ export async function requestOwnerAck(id: string): Promise<Result> {
     heading: "A customer wants your property",
     paragraphs: [
       `Hello ${info.owner.name}, we are introducing ${info.l.customer_name} to you for ${info.property}.`,
-      "Please acknowledge this introduction. Once you do, and we approve the enquiry, we send the customer your WhatsApp number and email so they can contact you directly.",
+      "Please acknowledge this introduction, and on the same page tell us which times suit you for an inspection (or that the customer's time suits you). We then agree one time with both of you, and send the customer your WhatsApp number, email and the approved time together.",
+      "If you would rather not use the link, just reply to this email with times that suit you and we will take it from there.",
     ],
     rows: [
       ["Reference", info.l.code],
@@ -234,10 +253,21 @@ export async function checkPayment(id: string): Promise<Result> {
   const user = await requireUser("transactions");
   const info = isId(id) ? await leadForEmail(id) : null;
   if (!info || info.l.invoice_status !== "Issued" || !info.l.payment_reference) return { error: "There is no issued invoice to check." };
-  const paid = await verifyPayment(info.l.payment_reference, info.l.fee_amount);
+  let reference = info.l.payment_reference;
+  const paid = await verifyPayment(reference, info.l.fee_amount);
   if (paid === "unreachable" || paid === "not-configured") return { error: "Paystack could not be reached just now. Please try again." };
-  if (paid !== "paid") return { error: "Paystack shows no successful payment for this invoice yet." };
-  return markPaid(id, user.name, `Verified with Paystack, reference ${info.l.payment_reference}.`);
+  if (paid !== "paid") {
+    // The invoice may have been sent again (a new reference each time) and the earlier link paid, so look for any
+    // successful payment made for this lead's invoices.
+    const found = await findPaidByPrefix(`${info.l.code}-INV-`, info.l.fee_amount);
+    if (found === "unreachable") return { error: "Paystack could not be reached just now. Please try again." };
+    if (!found) return { error: "Paystack shows no successful payment for this invoice yet." };
+    if ("short" in found) return { error: `Paystack shows a successful payment of ${naira(found.short)}, which is less than the ${naira(info.l.fee_amount)} invoiced. Record it by hand if the rest was settled another way.` };
+    reference = found.reference;
+    const fixed = await change(id, { payment_reference: reference });
+    if (fixed.error) return fixed;
+  }
+  return markPaid(id, user.name, `Verified with Paystack, reference ${reference}.`);
 }
 
 /** For a payment that arrived another way (for example a bank transfer) and that someone has checked by hand. */
@@ -258,8 +288,14 @@ export async function confirmInspection(id: string, local: string): Promise<Resu
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local)) return { error: "Choose the date and time." };
   const { data, error } = await supabaseAdmin().rpc("confirm_inspection", { p_lead: id, p_when: `${local}:00+01:00`, p_actor: user.name });
   if (error || !data) return { error: error?.code === "P0001" ? error.message : withId("leads", error, "The inspection time could not be saved. Please try again.") };
-  const c = data as { leadCode: string; customerName: string; customerEmail: string; ownerName: string; ownerEmail: string; property: string; when: string; trackToken: string };
+  const c = data as { leadCode: string; customerName: string; customerEmail: string; ownerName: string; ownerEmail: string; property: string; when: string; trackToken: string; released: boolean };
   const when = confirmedText(c.when);
+  if (!c.released) {
+    // Before release nothing is sent: the time goes out in the one release email to the customer and the owner.
+    await note(id, user.name, "Inspection time approved for release", `${when} (Lagos time). It will be in the release email to the customer and the owner.`);
+    revalidatePath("/admin", "layout");
+    return { error: null };
+  }
   const origin = await siteUrl();
 
   const results = await Promise.all([

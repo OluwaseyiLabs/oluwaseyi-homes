@@ -46,6 +46,9 @@ export interface PartyVisit {
     verified: boolean;
     customerInspected: boolean | null;
     ownerInspected: boolean | null;
+    /** The date and time of day the customer asked for, if any. */
+    inspectionDate: string | null;
+    inspectionSlot: string | null;
   };
 }
 
@@ -54,7 +57,7 @@ export async function readPartyToken(token: string): Promise<PartyVisit | "inval
   if (!/^[0-9a-f]{64}$/.test(token)) return "invalid";
   const { data: t } = await supabaseAdmin()
     .from("party_tokens")
-    .select("token_hash, party, purpose, expires_at, used_at, lead:leads(id, code, kind, status, customer_name, owner_ack_at, completion_verified_at, customer_inspected, owner_inspected, listing:listings(title, location))")
+    .select("token_hash, party, purpose, expires_at, used_at, lead:leads(id, code, kind, status, customer_name, owner_ack_at, completion_verified_at, customer_inspected, owner_inspected, inspection_date, inspection_slot, listing:listings(title, location))")
     .eq("token_hash", hash(token))
     .maybeSingle();
   if (!t) return "invalid";
@@ -77,6 +80,8 @@ export async function readPartyToken(token: string): Promise<PartyVisit | "inval
       verified: !!l.completion_verified_at,
       customerInspected: l.customer_inspected,
       ownerInspected: l.owner_inspected,
+      inspectionDate: l.inspection_date,
+      inspectionSlot: l.inspection_slot,
     },
   };
 }

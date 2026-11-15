@@ -36,6 +36,7 @@ export function PartyForm({
   property,
   customerName,
   canReport,
+  requested,
 }: {
   token: string;
   purpose: string;
@@ -46,6 +47,8 @@ export function PartyForm({
   customerName: string;
   /** False once a completion has already been checked by the team. */
   canReport: boolean;
+  /** The day and time of day the customer asked for, for example "Saturday 21 November 2026, morning". Empty when none. */
+  requested: string;
 }) {
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
@@ -53,6 +56,9 @@ export function PartyForm({
   const [inspected, setInspected] = useState<boolean | null>(null);
   const [completed, setCompleted] = useState<boolean | null>(null);
   const [report, setReport] = useState({ date: "", price: "", evidence: "" });
+  const [agree, setAgree] = useState<boolean | null>(null);
+  const [times, setTimes] = useState<string[]>([""]);
+  const [timeNote, setTimeNote] = useState("");
   const deal = kind === "Rent" ? "rental" : "sale";
 
   const send = (action: () => Promise<{ error: string | null }>) =>
@@ -69,7 +75,7 @@ export function PartyForm({
         <h1 className="text-2xl font-extrabold tracking-tight">Thank you.</h1>
         <p className="mt-3 text-lg text-muted">
           {purpose === "owner-ack"
-            ? "Your acknowledgement is recorded. Once we approve the enquiry, the customer will receive your contact details."
+            ? "Your acknowledgement and inspection times are recorded. We will agree one time with you and the customer, then send the customer your contact details and the approved time together. You will get an email when it is approved."
             : "Your answers are recorded."}
         </p>
       </div>
@@ -88,8 +94,56 @@ export function PartyForm({
           reference {leadCode} and the Property Listing and Agency Agreement you accepted. We then release your WhatsApp
           number and email to them.
         </p>
+        <div className="mt-6 grid grid-cols-1 gap-4 rounded-2xl border border-line bg-panel p-5">
+          <h2 className="text-lg font-bold">When can the customer inspect it?</h2>
+          {requested && (
+            <fieldset>
+              <legend className="text-sm text-muted">
+                The customer asked for <strong className="text-ink">{requested}</strong>.
+              </legend>
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {[
+                  [true, "That suits me"],
+                  [false, "I suggest other times"],
+                ].map(([v, label]) => (
+                  <label key={String(v)} className="flex min-h-12 cursor-pointer items-center gap-2 rounded-2xl border border-line bg-surface px-4 font-semibold has-[:checked]:border-green has-[:checked]:bg-green/10 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-green/30">
+                    <input type="radio" name="agree" checked={agree === v} onChange={() => setAgree(v as boolean)} className="size-4 accent-green" />
+                    {label as string}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+          {(!requested || agree === false) && (
+            <div className="grid grid-cols-1 gap-3">
+              <p className="text-sm text-muted">Add up to 3 date and time options that suit you. Times are Lagos time.</p>
+              {times.map((t, i) => (
+                <div key={i} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+                  <input aria-label={`Option ${i + 1}`} id={`ack-time-${i}`} type="datetime-local" value={t} onChange={(e) => setTimes((all) => all.map((x, j) => (j === i ? e.target.value : x)))} className={inputCls} />
+                  {times.length > 1 && (
+                    <button type="button" onClick={() => setTimes((all) => all.filter((_, j) => j !== i))} className="min-h-11 rounded-full px-3 text-sm font-semibold text-muted hover:text-ink">Remove</button>
+                  )}
+                </div>
+              ))}
+              {times.length < 3 && (
+                <button type="button" onClick={() => setTimes((all) => [...all, ""])} className="min-h-11 w-fit rounded-full border border-line px-5 text-sm font-semibold hover:bg-surface">Add another option</button>
+              )}
+            </div>
+          )}
+          <Field label="Anything we should know (optional)" name="ack-note">
+            <input id="ack-note" value={timeNote} maxLength={300} onChange={(e) => setTimeNote(e.target.value)} placeholder="For example, I am free after 2pm on weekdays" className={inputCls} />
+          </Field>
+        </div>
         {error && <p role="alert" className="mt-4 text-sm font-medium text-red-700">{error}</p>}
-        <button type="button" disabled={pending} onClick={() => send(() => acknowledge(token))} className={`${btn} mt-6`}>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => {
+            if (requested && agree === null) return setError("Say whether the customer's time suits you.");
+            send(() => acknowledge(token, { agree: requested ? agree === true : false, times: times.filter(Boolean), note: timeNote }));
+          }}
+          className={`${btn} mt-6`}
+        >
           {pending ? "Recording…" : "I acknowledge this introduction"}
         </button>
       </>

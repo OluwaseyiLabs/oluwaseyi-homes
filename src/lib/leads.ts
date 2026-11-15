@@ -42,7 +42,7 @@ export interface Lead {
   receipt?: string;
   suspect?: string;
   /** What the customer asked for, and the time the team confirmed. */
-  inspection?: { date?: string; slot?: string; confirmedFor?: string; confirmedBy?: string };
+  inspection?: { date?: string; slot?: string; confirmedFor?: string; confirmedBy?: string; ownerTimes?: string[]; ownerNote?: string; ownerAgreed?: boolean; ownerProposedAt?: string };
   conflict: boolean;
   /** How many follow-ups have been sent. */
   followUpCount: number;
@@ -64,6 +64,7 @@ export function releaseBlockers(l: Lead) {
   if (!l.customerAck) out.push("The customer has not acknowledged that the introduction comes from the platform.");
   if (l.listing && !l.agreement) out.push("The owner of this property has not accepted the Property Listing and Agency Agreement.");
   if (l.listing && !l.ownerAck) out.push("The owner has not acknowledged receiving this customer.");
+  if (l.listing && !l.inspection?.confirmedFor) out.push("No inspection time is confirmed yet. Agree one with the owner and the customer first.");
   return out;
 }
 

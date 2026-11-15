@@ -5,22 +5,65 @@ import { failWith } from "@/lib/errors";
 import { sendEmail } from "@/lib/n8n";
 import { partyLink, readPartyToken, useUpToken } from "@/lib/party";
 import { allow, clientKey } from "@/lib/ratelimit";
+import { REFUSED, cleanText, looksLikeInstructions } from "@/lib/sanitize";
+import { confirmedText, inspectionText } from "@/lib/leads";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { naira, parseNaira } from "@/lib/validation";
 
 type Result = { error: string | null };
 const GONE = "This link can no longer be used. Ask us for a new one.";
 
-/** The owner confirms they have received the customer we are introducing. */
-export async function acknowledge(token: string): Promise<Result> {
+export interface InspectionProposal {
+  /** True when the customer's own preferred time suits the owner. */
+  agree: boolean;
+  /** Up to three times that suit the owner, as "2026-11-21T10:00" in Lagos time. */
+  times: string[];
+  note: string;
+}
+
+const MAX_TIMES = 3;
+const WINDOW_DAYS = 30;
+
+/** The owner confirms they have received the customer, and says which inspection times suit them. */
+export async function acknowledge(token: string, proposal: InspectionProposal): Promise<Result> {
   const visit = await readPartyToken(token);
   if (typeof visit === "string" || visit.purpose !== "owner-ack" || visit.party !== "owner") return { error: GONE };
-  if (!visit.lead.ownerAck) {
-    // The database writes "Owner: Acknowledged receipt of this customer" into the history.
-    const { error } = await supabaseAdmin().from("leads").update({ owner_ack_at: new Date().toISOString() }).eq("id", visit.lead.id);
-    if (error) return { error: "We could not record that just now. Please try again." };
+  const { lead } = visit;
+
+  const asked = !!lead.inspectionDate;
+  const agree = asked && proposal?.agree === true;
+  const times = agree ? [] : [...new Set((Array.isArray(proposal?.times) ? proposal.times : []).filter((t): t is string => typeof t === "string" && t !== ""))];
+  if (!agree && times.length === 0) return { error: asked ? "Choose whether the customer's time suits you, or add at least one time that does." : "Add at least one time that suits you for the inspection." };
+  if (times.length > MAX_TIMES) return { error: `Add no more than ${MAX_TIMES} times.` };
+  const now = Date.now();
+  const stamps: string[] = [];
+  for (const t of times) {
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(t)) return { error: "Choose each time with the date and time boxes." };
+    const at = new Date(`${t}:00+01:00`).getTime();
+    if (!Number.isFinite(at) || at < now) return { error: "Choose times that have not passed." };
+    if (at > now + WINDOW_DAYS * 86_400_000) return { error: `Choose times within the next ${WINDOW_DAYS} days.` };
+    stamps.push(`${t}:00+01:00`);
   }
+  const text = cleanText(proposal?.note ?? "", 300, true);
+  if (looksLikeInstructions(text)) return { error: REFUSED };
+
+  const patch: Record<string, unknown> = { owner_proposed_times: stamps, owner_proposed_note: text, owner_agreed_customer_time: asked ? agree : null, owner_proposed_at: new Date().toISOString() };
+  if (!lead.ownerAck) patch.owner_ack_at = new Date().toISOString(); // the database writes "Owner: Acknowledged receipt of this customer" into the history
+  const db = supabaseAdmin();
+  const { error } = await db.from("leads").update(patch).eq("id", lead.id);
+  if (error) return { error: "We could not record that just now. Please try again." };
   await useUpToken(visit.tokenHash);
+
+  const summary = agree ? `The customer's preferred time suits the owner (${inspectionText(lead.inspectionDate, lead.inspectionSlot)}).` : `Times that suit the owner: ${stamps.map(confirmedText).join("; ")}.`;
+  await db.from("audit").insert({ lead_id: lead.id, actor: "Owner", action: "Gave inspection times", detail: text ? `${summary} Note: ${text}` : summary });
+  // The team picks the final time that works for both, then releases the contact.
+  await sendEmail({
+    to: "team",
+    subject: `Owner acknowledged and gave inspection times - ${lead.code}`,
+    heading: "Pick the inspection time",
+    paragraphs: ["The owner acknowledged this customer and told us which inspection times suit them.", "Open the lead, confirm one time that works for both, then release the contact. The time goes out in the release email."],
+    rows: [["Lead", lead.code], ["Property", lead.property], ["Customer asked for", inspectionText(lead.inspectionDate, lead.inspectionSlot) || "No time given"], ["Owner", agree ? "The customer's time suits" : stamps.map(confirmedText).join("; ")], ["Owner's note", text]],
+  });
   return { error: null };
 }
 

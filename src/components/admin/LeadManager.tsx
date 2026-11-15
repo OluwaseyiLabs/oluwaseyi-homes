@@ -106,6 +106,47 @@ export function LeadManager({
   const linked = [...new Map(leads.filter((l) => l.listing).map((l) => [l.listing!.code, l.listing!])).values()];
   const candidates = properties.filter((p) => p.category === open.enquiryType);
 
+  /** Lagos time as the date-and-time box wants it ("2026-11-21T10:00"). Lagos is a fixed UTC+1. */
+  const toBox = (iso: string) => new Date(new Date(iso).getTime() + 3_600_000).toISOString().slice(0, 16);
+  const ownerTimes = open.inspection?.ownerTimes ?? [];
+  const reschedule = released;
+  const planner = can.change && !closed(open) && (reschedule || open.ownerAck) ? (
+    <form
+      noValidate
+      className="mt-5 max-w-md"
+      onSubmit={(e) => {
+        e.preventDefault();
+        run(() => confirmInspection(open.dbId, slot), () => setSlot(""));
+      }}
+    >
+      <label htmlFor="lead-inspect" className="text-sm font-semibold">
+        {open.inspection?.confirmedFor ? "Change the inspection time" : "Confirm the inspection time"}
+      </label>
+      <p className="mt-0.5 text-xs text-muted">
+        {reschedule ? "Lagos time. The customer and the owner are both emailed the new time." : "Lagos time. Nothing is sent now: the time goes out in the release email to the customer and the owner."}
+      </p>
+      {!reschedule && (
+        <div className="mt-2 text-sm">
+          <p><span className="text-muted">Customer asked for:</span> <strong>{open.inspection?.date ? inspectionText(open.inspection.date, open.inspection.slot) : "No time given"}</strong></p>
+          <p className="mt-1">
+            <span className="text-muted">Owner says:</span>{" "}
+            <strong>{open.inspection?.ownerAgreed ? "The customer's time suits" : ownerTimes.length ? "These suit" : "No times given yet (reply by email?)"}</strong>
+          </p>
+          {ownerTimes.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {ownerTimes.map((t) => (
+                <button key={t} type="button" onClick={() => setSlot(toBox(t))} className={`${btnGhost} min-h-10 px-4 text-sm`}>{confirmedText(t)}</button>
+              ))}
+            </div>
+          )}
+          {open.inspection?.ownerNote && <p className="mt-2 text-xs text-muted">Owner's note: {open.inspection.ownerNote}</p>}
+        </div>
+      )}
+      <input id="lead-inspect" type="datetime-local" value={slot} onChange={(e) => setSlot(e.target.value)} className={inputCls} />
+      <button disabled={pending || !slot} className={`${btnGhost} mt-3`}>{reschedule ? "Confirm and email both" : "Confirm this time"}</button>
+    </form>
+  ) : null;
+
   const set = (key: keyof typeof blank) => (e: { target: { value: string } }) => setF((x) => ({ ...x, [key]: e.target.value }));
   const filterCls = "mt-1 block min-h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm";
 
@@ -244,6 +285,10 @@ export function LeadManager({
                     : open.inspection?.date
                       ? `Requested for ${inspectionText(open.inspection.date, open.inspection.slot)}. Not confirmed yet.`
                       : "Not requested"}
+                  {!open.inspection?.confirmedFor && open.inspection?.ownerAgreed && <><br /><span className="font-normal text-muted">The owner says the customer's time suits.</span></>}
+                  {!open.inspection?.confirmedFor && (open.inspection?.ownerTimes?.length ?? 0) > 0 && (
+                    <><br /><span className="font-normal text-muted">Owner can do: {open.inspection!.ownerTimes!.map(confirmedText).join("; ")}.</span></>
+                  )}
                 </dd>
               </div>
             </dl>
@@ -325,6 +370,8 @@ export function LeadManager({
               ) : (
                 <p className="mt-2 text-sm text-green">Agreement, acknowledgements and lead registration are complete.</p>
               )}
+              {planner}
+              {!open.ownerAck && open.listing && <p className="mt-3 text-xs text-muted">The inspection time can be confirmed as soon as the owner has acknowledged.</p>}
               <div className="mt-4 flex flex-wrap gap-3">
                 {can.release && (
                   <button type="button" disabled={pending || missing.length > 0} onClick={() => run(() => releaseContact(open.dbId))} className={btnPrimary}>
@@ -376,23 +423,7 @@ export function LeadManager({
                   </select>
                 </label>
                 <p className="mt-2 text-xs text-muted">{won} can only be chosen after a reported completion has been checked.</p>
-                {can.change && !closed(open) && (
-                  <form
-                    noValidate
-                    className="mt-5 max-w-sm"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      run(() => confirmInspection(open.dbId, slot));
-                    }}
-                  >
-                    <label htmlFor="lead-inspect" className="text-sm font-semibold">
-                      {open.inspection?.confirmedFor ? "Change the inspection time" : "Confirm the inspection time"}
-                    </label>
-                    <p className="mt-0.5 text-xs text-muted">Lagos time. The customer and the owner are both emailed.</p>
-                    <input id="lead-inspect" type="datetime-local" value={slot} onChange={(e) => setSlot(e.target.value)} className={inputCls} />
-                    <button disabled={pending || !slot} className={`${btnGhost} mt-3`}>Confirm and email both</button>
-                  </form>
-                )}
+                {planner}
                 {can.change && !closed(open) && (
                   <button type="button" disabled={pending} onClick={() => run(() => sendFollowUpNow(open.dbId))} className={`${btnGhost} mt-4`}>
                     Send follow-up now

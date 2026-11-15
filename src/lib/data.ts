@@ -164,7 +164,7 @@ function toLead(r: any): Lead {
     invoice: r.invoice_status,
     receipt: r.receipt_code ?? undefined,
     suspect: r.suspect_reason ?? undefined,
-    inspection: { date: r.inspection_date ?? undefined, slot: r.inspection_slot ?? undefined, confirmedFor: r.inspection_confirmed_for ?? undefined, confirmedBy: r.inspection_confirmed_by ?? undefined },
+    inspection: { date: r.inspection_date ?? undefined, slot: r.inspection_slot ?? undefined, confirmedFor: r.inspection_confirmed_for ?? undefined, confirmedBy: r.inspection_confirmed_by ?? undefined, ownerTimes: r.owner_proposed_times ?? undefined, ownerNote: r.owner_proposed_note || undefined, ownerAgreed: r.owner_agreed_customer_time ?? undefined, ownerProposedAt: r.owner_proposed_at ?? undefined },
     conflict: r.conflict,
     followUpCount: r.follow_up_count ?? 0,
     propertyType: r.property_type,

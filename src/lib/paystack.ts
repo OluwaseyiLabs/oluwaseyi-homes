@@ -25,6 +25,31 @@ export async function verifyPayment(
   }
 }
 
+/**
+ * Server-only: finds a successful payment whose reference starts with `prefix` (every invoice for one lead does, and
+ * sending an invoice again makes a new reference, so the one that was paid may not be the one on file). Looks at
+ * Paystack's most recent successful payments.
+ */
+export async function findPaidByPrefix(prefix: string, naira: number): Promise<{ reference: string } | { short: number } | null | "unreachable"> {
+  const key = process.env.PAYSTACK_SECRET_KEY;
+  if (!key || !/^[\w-]{4,60}$/.test(prefix)) return null;
+  try {
+    const res = await fetch(`https://api.paystack.co/transaction?status=success&perPage=100`, {
+      headers: { Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(15_000),
+      cache: "no-store",
+    });
+    const json = (await res.json().catch(() => null)) as { data?: { reference?: string; amount?: number; currency?: string }[] } | null;
+    const mine = (json?.data ?? []).filter((t) => t.reference?.startsWith(prefix) && t.currency === "NGN");
+    const full = mine.find((t) => (t.amount ?? 0) >= naira * 100);
+    if (full?.reference) return { reference: full.reference };
+    const best = Math.max(0, ...mine.map((t) => t.amount ?? 0));
+    return best > 0 ? { short: best / 100 } : null;
+  } catch {
+    return "unreachable";
+  }
+}
+
 /** Server-only: starts a Paystack payment and returns the page where it can be paid, or null if Paystack refused. */
 export async function startPayment(email: string, naira: number, reference: string): Promise<string | null> {
   const key = process.env.PAYSTACK_SECRET_KEY;

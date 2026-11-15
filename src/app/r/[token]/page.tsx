@@ -3,6 +3,7 @@ import { Logo } from "@/components/Logo";
 import { NewLinkButton } from "@/components/NewLinkButton";
 import { PartyForm } from "@/components/PartyForm";
 import { getSiteContent } from "@/lib/data";
+import { inspectionText } from "@/lib/leads";
 import { readPartyToken } from "@/lib/party";
 
 export const metadata: Metadata = { title: "Oluwaseyi Homes & Properties", robots: { index: false, follow: false } };
@@ -39,6 +40,7 @@ export default async function PartyPage({ params }: { params: Promise<{ token: s
               property={visit.lead.property}
               customerName={visit.lead.customerName}
               canReport={!visit.lead.verified}
+              requested={inspectionText(visit.lead.inspectionDate, visit.lead.inspectionSlot)}
             />
           )}
         </div>

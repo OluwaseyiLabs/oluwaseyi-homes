@@ -55,6 +55,8 @@ export interface ContactRelease {
   trackToken?: string;
   /** What the customer asked for, for example "Saturday 21 November 2026, morning". */
   inspection?: string;
+  /** The inspection time the team approved with the owner, for example "Saturday 21 November 2026 at 10:00". */
+  inspectionConfirmed?: string;
   leadCode: string;
   customerName: string;
   customerEmail: string;
@@ -92,10 +94,11 @@ export const sendContactRelease = async (r: ContactRelease) => {
     heading: "Your enquiry is approved",
     paragraphs: [
       `Hello ${r.customerName.split(" ")[0]}, here are the contact details of the owner of the property you asked about. You can now contact them directly.`,
-      ...(r.inspection ? [`You asked to inspect it on ${r.inspection}. The owner has this request. Your inspection time is confirmed by email once it is agreed.`] : []),
+      ...(r.inspectionConfirmed ? [`Your inspection is confirmed for ${r.inspectionConfirmed} (Lagos time). The owner has agreed to this time. If you need to change it, tell us by reply or on WhatsApp.`] : r.inspection ? [`You asked to inspect it on ${r.inspection}. The owner has this request.`] : []),
     ],
     rows: [
       ["Property", r.property],
+      ...(r.inspectionConfirmed ? [["Inspection", `${r.inspectionConfirmed} (Lagos time)`] as [string, string]] : []),
       ["Owner", r.ownerName],
       ["WhatsApp", r.ownerWhatsapp],
       ["Email", r.ownerEmail],
@@ -105,7 +108,7 @@ export const sendContactRelease = async (r: ContactRelease) => {
     buttons: [
       {
         label: "Message the owner on WhatsApp",
-        url: waLink(r.ownerWhatsapp, ownerChatMessage({ company: site.name, customerName: r.customerName, ownerName: r.ownerName, property: r.property, leadCode: r.leadCode, inspection: r.inspection })),
+        url: waLink(r.ownerWhatsapp, ownerChatMessage({ company: site.name, customerName: r.customerName, ownerName: r.ownerName, property: r.property, leadCode: r.leadCode, inspection: r.inspection, confirmed: r.inspectionConfirmed })),
       },
       ...(r.trackToken ? [{ label: "Track your enquiry", url: `${origin}/track/${r.trackToken}` }] : []),
     ],
