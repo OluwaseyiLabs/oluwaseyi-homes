@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { approveSubmission, markRead, sendApprovalEmail, setSubmissionStatus } from "@/app/admin/(dashboard)/submissions/actions";
+import { approveSubmission, markRead, rejectSubmission, sendApprovalEmail, setSubmissionStatus } from "@/app/admin/(dashboard)/submissions/actions";
 import { CostBreakdown } from "@/components/CostBreakdown";
 import { formatDetail, type DetailField } from "@/lib/listings";
 import type { Submission } from "@/lib/submissions";
 import { naira } from "@/lib/validation";
 import { PhotoGrid } from "./PhotoGrid";
+import { RefundPanel } from "./RefundPanel";
+import { RejectDialog } from "./RejectDialog";
 import { Badge, Card, PageHeader, btnGhost, btnPrimary } from "./ui";
 
 const fmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lagos" });
@@ -20,22 +22,28 @@ export function SubmissionInbox({
   submissions,
   detailFields,
   canApprove,
+  canRefund,
 }: {
   initialId?: string;
   submissions: Submission[];
   detailFields: DetailField[];
   canApprove: boolean;
+  canRefund: boolean;
 }) {
   const router = useRouter();
   const [openId, setOpenId] = useState(initialId ?? submissions[0]?.id);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [rejecting, setRejecting] = useState(false);
   const [pending, start] = useTransition();
 
-  const run = (action: () => Promise<{ error: string | null }>) =>
+  const run = (action: () => Promise<{ error: string | null; info?: string }>) =>
     start(async () => {
       setError("");
+      setInfo("");
       const res = await action();
       if (res.error) setError(res.error);
+      if (res.info) setInfo(res.info);
       router.refresh();
     });
 
@@ -114,6 +122,7 @@ export function SubmissionInbox({
             <Badge>{open.status}</Badge>
           </div>
 
+          {info && <p id="sub-info" role="status" className="mt-5 rounded-xl bg-green/10 p-4 text-sm font-medium text-green">{info}</p>}
           {error && <p id="sub-error" role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm font-medium text-red-700">{error}</p>}
 
           {open.photos.length > 0 ? <PhotoGrid key={open.id} photos={open.photos} /> : <p className="mt-6 text-sm text-muted">The photos could not be loaded.</p>}
@@ -224,17 +233,26 @@ export function SubmissionInbox({
                   </button>
                 )}
                 {canApprove && !settled && (
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() => window.confirm("Reject this submission? The listing fee stays recorded as paid.") && run(() => setSubmissionStatus(open.dbId, "Rejected"))}
-                    className={`${btnGhost} text-red-700`}
-                  >
+                  <button type="button" disabled={pending} onClick={() => setRejecting(true)} className={`${btnGhost} text-red-700`}>
                     Reject
                   </button>
                 )}
-                {open.status === "Rejected" && <p className="text-sm text-muted">This submission was rejected.</p>}
               </div>
+            )}
+            {!open.listingCode && open.status === "Rejected" && <RefundPanel s={open} canRefund={canRefund} pending={pending} run={run} />}
+            {rejecting && (
+              <RejectDialog
+                code={open.id}
+                ownerName={open.owner.name}
+                fee={open.agreement.listingFee}
+                canRefund={canRefund}
+                pending={pending}
+                onClose={() => setRejecting(false)}
+                onReject={(reasonId, note, refund) => {
+                  run(() => rejectSubmission(open.dbId, reasonId, note, refund));
+                  setRejecting(false);
+                }}
+              />
             )}
           </div>
         </Card>

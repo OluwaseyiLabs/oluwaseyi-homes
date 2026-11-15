@@ -1,4 +1,5 @@
 import type { Costs } from "./listings";
+import type { RefundRecord } from "./refunds";
 
 export const SUBMISSION_STATUSES = ["New", "Contacted", "Approved", "Rejected"] as const;
 export type SubmissionStatus = (typeof SUBMISSION_STATUSES)[number];
@@ -37,6 +38,10 @@ export interface Submission {
   listingPublished?: boolean;
   /** When the owner was last emailed that it was approved. */
   ownerEmailedAt?: string;
+  /** Why it was rejected, and whether the listing fee is to be refunded (decided by a person at that moment). */
+  rejection?: { reasonId: string; note?: string; refundDecision: boolean | null };
+  /** The refund of the listing fee, if one was started or recorded. Only people allowed to send refunds can see it. */
+  refund?: RefundRecord;
   status: SubmissionStatus;
   unread: boolean;
   receivedAt: string;

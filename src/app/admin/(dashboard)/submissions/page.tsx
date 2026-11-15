@@ -12,6 +12,7 @@ export default async function Submissions({ searchParams }: { searchParams: Prom
       submissions={submissions}
       detailFields={detailFields}
       canApprove={user.permissions.includes("approve")}
+      canRefund={user.permissions.includes("refunds")}
     />
   );
 }

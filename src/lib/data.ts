@@ -205,9 +205,20 @@ export async function getWaitingLeads(db: SupabaseClient) {
 /** Owner submissions, newest first, for a signed-in team member. Photos come back as one-hour links. */
 export async function getSubmissions(db: SupabaseClient): Promise<Submission[]> {
   const base = "*, owner:owners(code, name, email, whatsapp), agreement:agreements(version, accepted_at, listing_fee, fee_pct, fee_due, protection_months, payment_reference), submission_images(path, position)";
-  let { data, error } = await db.from("submissions").select(`${base}, listings(code, published, owner_notified_at)`).order("created_at", { ascending: false });
-  // Before migration 0012 is run the "owner emailed" column does not exist yet: the page still works, without that detail.
-  if (error) ({ data, error } = await db.from("submissions").select(`${base}, listings(code, published)`).order("created_at", { ascending: false }));
+  const refundCols = "refunds(status, method, amount, created_at, created_by, completed_at, failure, note)";
+  // The newest database changes may not have been run yet (migrations 0012 and 0013): fall back to what exists, so the page always opens.
+  const tries = [
+    `${base}, listings(code, published, owner_notified_at), ${refundCols}`,
+    `${base}, listings(code, published, owner_notified_at)`,
+    `${base}, listings(code, published), ${refundCols}`,
+    `${base}, listings(code, published)`,
+  ];
+  let data: unknown[] | null = null;
+  let error: { message: string } | null = null;
+  for (const columns of tries) {
+    ({ data, error } = await db.from("submissions").select(columns).order("created_at", { ascending: false }));
+    if (!error) break;
+  }
   if (error) throw new Error(error.message);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- database rows
   const rows = data as any[];
@@ -250,6 +261,13 @@ export async function getSubmissions(db: SupabaseClient): Promise<Submission[]> 
       protectionMonths: r.agreement.protection_months,
       paymentRef: r.agreement.payment_reference,
     },
+    rejection: r.rejected_reason ? { reasonId: r.rejected_reason, note: r.rejected_note ?? undefined, refundDecision: r.refund_decision ?? null } : undefined,
+    refund: (() => {
+      // A fee can have several attempts (failed ones, then one that counts). Show the one that counts, else the latest failure.
+      const rows = [...(r.refunds ?? [])].sort((a: { created_at: string }, b: { created_at: string }) => b.created_at.localeCompare(a.created_at));
+      const x = rows.find((v: { status: string }) => v.status !== "Failed") ?? rows[0];
+      return x ? { status: x.status, method: x.method, amount: Number(x.amount), at: x.created_at, by: x.created_by, completedAt: x.completed_at ?? undefined, failure: x.failure ?? undefined, note: x.note || undefined } : undefined;
+    })(),
     listingCode: r.listings?.[0]?.code,
     listingPublished: !!r.listings?.[0]?.published,
     ownerEmailedAt: r.listings?.[0]?.owner_notified_at ?? undefined,

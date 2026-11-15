@@ -125,7 +125,7 @@ These are never taken in advance. Nothing is due on a rental unless a tenant we 
 Message us on WhatsApp at {whatsapp} within 7 days of your payment with your payment reference and the property address. We reply within 3 working days.
 
 ## How you are paid back
-Approved refunds go back to the card or account you paid with, through Paystack, normally within 5 to 10 working days of approval. Your bank may take longer to show it.`,
+If we reject your submission and a refund is due, we start it ourselves and email you: you do not need to ask. Approved refunds go back to the card or account you paid with, through Paystack, normally within 5 to 10 working days of approval. Your bank may take longer to show it.`,
   },
 
   agreement: {
