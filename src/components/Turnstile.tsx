@@ -68,8 +68,9 @@ export function Turnstile({ action, onToken, onProblem, ref }: { action: string;
           sitekey: TURNSTILE_SITE_KEY,
           action,
           theme: document.documentElement.dataset.theme === "dark" ? "dark" : "light",
-          // Invisible unless Cloudflare needs the visitor to do something.
-          appearance: "interaction-only",
+          // Always shown, so every visitor (Safari and other iPhone browsers included) sees the check run and finish.
+          appearance: "always",
+          size: "flexible",
           callback: (token: string) => {
             problem.current?.(false);
             callback.current(token);
@@ -95,5 +96,5 @@ export function Turnstile({ action, onToken, onProblem, ref }: { action: string;
   }, [action]);
 
   if (!TURNSTILE_SITE_KEY) return null;
-  return <div ref={box} aria-label="Security check" className="empty:hidden" />;
+  return <div ref={box} aria-label="Security check" className="my-1 min-h-[65px] w-full" />;
 }

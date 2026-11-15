@@ -307,6 +307,11 @@ export function ListPropertyForm({ detailFields, facilities }: { detailFields: D
             ))}
           </select>
         </Field>
+        {data.propertyType === "Others" && (
+          <Field label="What kind of property?" name="list-propertyOther" error={errors.propertyOther} required>
+            <input {...props("propertyOther")} maxLength={60} placeholder="For example, boys' quarters, warehouse, hotel" />
+          </Field>
+        )}
         <Field label="Number of bedrooms" name="list-bedrooms" error={errors.bedrooms}>
           <input {...props("bedrooms")} inputMode="numeric" placeholder="Leave empty for land or a shop" />
         </Field>

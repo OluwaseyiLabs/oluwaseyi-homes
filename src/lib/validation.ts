@@ -4,6 +4,9 @@
 export const ENQUIRY_TYPES = ["Rent", "Buy", "Invest"] as const;
 export const PROPERTY_TYPES = [
   "Apartment",
+  "Self-contained",
+  "Mini flat",
+  "Studio apartment",
   "Duplex",
   "Semi-detached",
   "Land",
@@ -78,6 +81,8 @@ export interface LeadInput {
   phone: string;
   enquiryType: string;
   propertyType: string;
+  /** What the visitor typed when they chose "Others". */
+  propertyOther: string;
   location: string;
   budget: string;
   /** YYYY-MM-DD. Asked for Rent and Buy. */
@@ -122,6 +127,7 @@ export const emptyLead: LeadInput = {
   phone: "",
   enquiryType: "",
   propertyType: "",
+  propertyOther: "",
   location: "",
   budget: "",
   moveInDate: "",
@@ -149,6 +155,7 @@ export function validateLead(input: LeadInput): LeadErrors {
     errors.enquiryType = "Choose what you are looking for.";
   if (!(PROPERTY_TYPES as readonly string[]).includes(input.propertyType))
     errors.propertyType = "Choose a property type.";
+  if (input.propertyType === "Others" && !input.propertyOther.trim()) errors.propertyOther = "Tell us the kind of property.";
   if (needsMatch(input.enquiryType)) {
     if (!input.location.trim()) errors.location = "Enter the area you prefer.";
     if (!input.budget.trim()) errors.budget = "Enter your budget.";
@@ -195,6 +202,8 @@ export interface ListingInput {
   phone: string;
   email: string;
   propertyType: string;
+  /** What the owner typed when they chose "Others". */
+  propertyOther: string;
   address: string;
   neighbourhood: string;
   bedrooms: string;
@@ -234,6 +243,7 @@ export const emptyListing: ListingInput = {
   phone: "",
   email: "",
   propertyType: "",
+  propertyOther: "",
   address: "",
   neighbourhood: "",
   bedrooms: "",
@@ -270,6 +280,7 @@ export function validateListing(
     errors.relationship = "Choose how you are related to this property.";
   if (!(PROPERTY_TYPES as readonly string[]).includes(input.propertyType))
     errors.propertyType = "Choose a property type.";
+  if (input.propertyType === "Others" && !input.propertyOther.trim()) errors.propertyOther = "Tell us the kind of property.";
   if (!input.address.trim()) errors.address = "Enter the property address.";
   if (!input.neighbourhood.trim()) errors.neighbourhood = "Enter the area or neighbourhood.";
   if (input.bedrooms && !/^\d{1,2}$/.test(input.bedrooms)) errors.bedrooms = "Enter a number.";

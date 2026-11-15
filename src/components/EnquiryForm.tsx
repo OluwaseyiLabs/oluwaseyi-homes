@@ -285,6 +285,11 @@ export function EnquiryForm({ facilities }: { facilities: string[] }) {
           ))}
         </select>
       </Field>
+      {lead.propertyType === "Others" && (
+        <Field label="What kind of property?" name="propertyOther" error={errors.propertyOther} required>
+          <input {...props("propertyOther")} maxLength={60} placeholder="For example, boys' quarters, warehouse, hotel" />
+        </Field>
+      )}
       <Field label="Preferred location" name="location" error={errors.location} required={matching}>
         <input {...props("location")} placeholder="For example, Yaba or Lekki Phase 1" />
       </Field>

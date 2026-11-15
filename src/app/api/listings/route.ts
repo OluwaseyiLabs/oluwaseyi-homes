@@ -14,7 +14,7 @@ const bad = (error: string, status = 400) => NextResponse.json({ success: false,
 const BUCKET = "submissions";
 /** Free-text fields: how long each may be, and whether line breaks are kept. */
 const FREE_TEXT: Partial<Record<keyof ListingInput, [number, boolean]>> = {
-  fullName: [80, false], address: [200, false], neighbourhood: [100, false], serviceCovers: [200, false],
+  fullName: [80, false], propertyOther: [60, false], address: [200, false], neighbourhood: [100, false], serviceCovers: [200, false],
   parking: [120, false], security: [120, false], inspection: [200, false], description: [2000, true],
 };
 
@@ -104,7 +104,7 @@ async function handle(req: Request) {
     fullName: listing.fullName,
     email: listing.email.toLowerCase(),
     phone: listing.phone,
-    propertyType: listing.propertyType,
+    propertyType: listing.propertyType === "Others" ? `Others: ${listing.propertyOther}` : listing.propertyType,
     address: listing.address,
     neighbourhood: listing.neighbourhood,
     bedrooms: listing.bedrooms,

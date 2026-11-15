@@ -16,7 +16,7 @@ const tooFast = () => bad("That was very quick. Please slow down, check your det
 const pretend = () => NextResponse.json({ success: true, data: { message: "We have sent a 6-digit code to your email.", step: "code" }, error: null });
 /** Fields that are free text, and how long each may be. Everything else is a fixed choice, a date or a number. */
 const FREE_TEXT: Partial<Record<keyof LeadInput, [number, boolean]>> = {
-  firstName: [60, false], lastName: [60, false], location: [120, false], budget: [60, false], specialRequirement: [1000, true],
+  firstName: [60, false], lastName: [60, false], propertyOther: [60, false], location: [120, false], budget: [60, false], specialRequirement: [1000, true],
 };
 
 /**
@@ -68,6 +68,9 @@ export async function POST(req: Request) {
   if (!(await allow(`lead-ip:${await clientKey()}`, 10, 3600)) || !(await allow(`lead-email:${lead.email}`, 3, 900))) return tooMany();
 
   // The budget is stored as naira with commas, so the dashboard, the emails and the sheet all read it the same way.
+  // "Others" is stored with what the customer typed, so the team and the sheet see the real kind.
+  if (lead.propertyType === "Others") lead.propertyType = `Others: ${lead.propertyOther}`;
+  lead.propertyOther = "";
   lead.budget = formatBudget(lead.budget);
   lead.source = lead.source.replace(/[^\w .:-]/g, "").slice(0, 80);
   // Identifiers must look like identifiers.
