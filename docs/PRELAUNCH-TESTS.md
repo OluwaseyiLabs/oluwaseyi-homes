@@ -291,9 +291,9 @@ Tick each box when the test passes. Write what you saw next to any that fail. Th
 - [ ] **11.1 Offline submit**
   - Do: Turn on airplane mode and submit an enquiry. Turn it off and retry.
   - Expect: Friendly message while offline. No duplicate afterwards.
-- [ ] **11.2 Error ID**
-  - Do: Ask Claude to stage an error, then read the ID shown (ERR-XXXXXX).
-  - Expect: The same ID is found in Vercel, Logs.
+- [ ] **11.2 Error ID and Errors page**
+  - Do: Owner: Your account, Send a test error. Read the ID (ERR-XXXXXX). Then open Errors in the menu and Vercel, Logs.
+  - Expect: The same ID is in the Errors page (marked Test) and in Vercel, Logs. Open it and tick Mark as fixed, then Open it again.
 - [ ] **11.3 n8n Executions**
   - Do: Open n8n, Executions, after your tests.
   - Expect: No red rows for the runs you made.

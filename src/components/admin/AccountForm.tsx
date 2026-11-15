@@ -74,7 +74,7 @@ export function AccountForm({ name, email, role }: { name: string; email: string
       <Card>
         <h2 className="text-lg font-bold">Check that errors can be traced</h2>
         <p className="mt-1 text-sm text-muted">
-          This makes the site log a harmless test error and shows you its ID. Search that ID in Vercel, Logs: you should find one line saying it was staged on purpose. Nothing is saved or sent.
+          This makes the site log a harmless test error and shows you its ID. The same ID appears on the Errors page (marked Test) and in Vercel, Logs. Nothing else is saved or sent.
         </p>
         {drill && (
           <p role={drill.ok ? "status" : "alert"} className={`mt-4 break-words rounded-xl p-4 text-sm font-medium ${drill.ok ? "bg-green/10 text-green" : "bg-red-50 text-red-700"}`}>

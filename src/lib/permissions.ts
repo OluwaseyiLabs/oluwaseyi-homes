@@ -9,6 +9,7 @@ export const permissionList = [
   { key: "transactions", label: "Update lead and transaction statuses, check completions, issue invoices and confirm payments" },
   { key: "content", label: "Edit website text, images and company name" },
   { key: "refunds", label: "Send refunds of listing fees to owners (moves money out of the Paystack balance)" },
+  { key: "errors", label: "See the error log: what went wrong on the site, and when" },
   { key: "team", label: "Invite team members, create roles, change what roles can do, and change the fees" },
 ] as const;
 

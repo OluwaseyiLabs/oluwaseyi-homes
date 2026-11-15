@@ -13,6 +13,7 @@ const paths: Record<string, string> = {
   sheet: "M4 4h16v16H4zM4 10h16M4 15h16M10 4v16",
   external: "M14 4h6v6M20 4l-9 9M18 14v6H4V6h6",
   plus: "M12 5v14M5 12h14",
+  warning: "M12 4l9 16H3zM12 10v4M12 17.5v.5",
   logout: "M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10",
 };
 

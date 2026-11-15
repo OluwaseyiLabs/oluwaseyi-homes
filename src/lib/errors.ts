@@ -1,5 +1,6 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
+import { storeError } from "./error-store";
 
 /** Letters and digits without look-alikes, so the ID can be read out over the phone. */
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -13,6 +14,8 @@ export function logError(where: string, err: unknown, context: Record<string, un
   const id = "ERR-" + Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join("");
   const e = err instanceof Error ? err : new Error(typeof err === "string" ? err : JSON.stringify(err));
   console.error(JSON.stringify({ level: "error", id, where, message: e.message, stack: e.stack?.split("\n").slice(0, 6), context, at: new Date().toISOString() }));
+  // Also kept for the team's error page. The stack is trimmed and the context holds identifiers only.
+  storeError({ ref: id, place: where, message: e.message, detail: { stack: e.stack?.split("\n").slice(0, 6), context }, staged: context.staged === true });
   return id;
 }
 

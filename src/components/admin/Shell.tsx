@@ -18,6 +18,7 @@ const nav: { href: string; label: string; icon: string; needs: string }[] = [
   { href: "/admin/content", needs: "content", label: "Website content", icon: "edit" },
   { href: "/admin/legal", needs: "content", label: "Legal pages", icon: "sheet" },
   { href: "/admin/traffic", needs: "view", label: "Traffic", icon: "chart" },
+  { href: "/admin/errors", needs: "errors", label: "Errors", icon: "warning" },
   { href: "/admin/team", needs: "team", label: "Team", icon: "users" },
 ];
 
@@ -120,6 +121,7 @@ export function Shell({
   sheetUrl,
   waiting,
   unread,
+  openErrors = 0,
 }: {
   children: ReactNode;
   user: { name: string; role: string; permissions: string[] };
@@ -129,8 +131,10 @@ export function Shell({
   waiting: Waiting[];
   /** Owner submissions nobody has opened yet. */
   unread: Unread[];
+  /** Errors nobody has marked as fixed. Only counted for people who may see the error log. */
+  openErrors?: number;
 }) {
-  const badges: Record<string, number> = { "/admin/leads": waiting.length, "/admin/submissions": unread.length };
+  const badges: Record<string, number> = { "/admin/leads": waiting.length, "/admin/submissions": unread.length, "/admin/errors": openErrors };
   const path = usePathname();
   const company = useSite().site.name;
   const [menu, setMenu] = useState(false);
